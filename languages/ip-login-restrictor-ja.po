@@ -1,7 +1,6 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: IP Login Restrictor 1.1.3\n"
-"Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-07 00:00+0900\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
@@ -13,52 +12,70 @@ msgstr ""
 "X-Generator: Poedit 3.6\n"
 
 msgid "Access denied. Your IP address is not allowed."
-msgstr "アクセスが拒否されました。あなたのIPアドレスは許可されていません。"
+msgstr "アクセス拒否。このIPアドレスからのアクセスは許可されていません。"
 
 msgid "Settings saved."
 msgstr "設定を保存しました。"
 
 msgid "IP Login Restrictor Settings"
-msgstr "IPログイン制限 設定"
+msgstr "IPログイン制限設定"
 
 msgid "Allowed IP addresses or CIDR ranges (one per line):"
-msgstr "許可するIPアドレスまたはCIDR（1行に1つ）:"
+msgstr "許可するIPアドレスまたはCIDR（1行に1つ）："
 
 msgid "Add current IP address"
 msgstr "現在のIPアドレスを追加"
 
 msgid "Your IP:"
-msgstr "あなたのIP:"
+msgstr "あなたのIP："
 
 msgid "Access Denied Message"
-msgstr "アクセス拒否時のメッセージ"
+msgstr "アクセス拒否メッセージ"
 
 msgid "This message is shown when access is denied due to IP restriction."
-msgstr "IP制限によりアクセスが拒否されたときに表示されるメッセージです。"
+msgstr "IP制限によりアクセスが拒否された場合に表示されるメッセージです。"
 
 msgid "Save Changes"
 msgstr "変更を保存"
 
 msgid "Emergency IP:"
-msgstr "緊急IP:"
+msgstr "緊急IP："
 
 msgid "You can add"
-msgstr "次のコードを追加できます"
+msgstr "次を追加できます："
 
 msgid "to wp-config.php to allow access."
-msgstr "をwp-config.phpに追加するとアクセスが許可されます。"
+msgstr "をwp-config.phpに追加するとアクセスを許可します。"
 
 msgid "Disable restriction:"
-msgstr "制限を無効化:"
+msgstr "制限を無効化："
 
 msgid "Add"
 msgstr "追加"
 
 msgid "to disable all IP restrictions."
-msgstr "を追加するとすべてのIP制限が無効になります。"
+msgstr "を追加するとすべてのIP制限を無効にします。"
 
 msgid "This IP address is already added."
 msgstr "このIPアドレスはすでに追加されています。"
 
 msgid "IP Login Restrictor"
 msgstr "IPログイン制限"
+
+msgid "Status"
+msgstr "ステータス"
+
+msgid "Enabled"
+msgstr "有効"
+
+msgid "Disabled"
+msgstr "無効"
+
+msgid "When enabled, admin/login access is restricted by the whitelist below."
+msgstr "有効な場合、管理者/ログインアクセスは以下のホワイトリストによって制限されます。"
+
+msgid "IP Restrictor: %s"
+msgstr "IP制限：%s"
+
+msgid "Your IP: %s"
+msgstr "あなたのIP：%s"

@@ -7,70 +7,73 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: ChatGPT POT Generator\n"
 
-#: plugin
 msgid "Access denied. Your IP address is not allowed."
 msgstr ""
 
-#: plugin
 msgid "Settings saved."
 msgstr ""
 
-#: plugin
 msgid "IP Login Restrictor Settings"
 msgstr ""
 
-#: plugin
 msgid "Allowed IP addresses or CIDR ranges (one per line):"
 msgstr ""
 
-#: plugin
 msgid "Add current IP address"
 msgstr ""
 
-#: plugin
 msgid "Your IP:"
 msgstr ""
 
-#: plugin
 msgid "Access Denied Message"
 msgstr ""
 
-#: plugin
 msgid "This message is shown when access is denied due to IP restriction."
 msgstr ""
 
-#: plugin
 msgid "Save Changes"
 msgstr ""
 
-#: plugin
 msgid "Emergency IP:"
 msgstr ""
 
-#: plugin
 msgid "You can add"
 msgstr ""
 
-#: plugin
 msgid "to wp-config.php to allow access."
 msgstr ""
 
-#: plugin
 msgid "Disable restriction:"
 msgstr ""
 
-#: plugin
 msgid "Add"
 msgstr ""
 
-#: plugin
 msgid "to disable all IP restrictions."
 msgstr ""
 
-#: plugin
 msgid "This IP address is already added."
 msgstr ""
 
-#: plugin
 msgid "IP Login Restrictor"
+msgstr ""
+
+# === 新規追加分 ===
+
+msgid "Status"
+msgstr ""
+
+msgid "Enabled"
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "When enabled, admin/login access is restricted by the whitelist below."
+msgstr ""
+
+msgid "IP Restrictor: %s"
+msgstr ""
+
+msgid "Your IP: %s"
 msgstr ""

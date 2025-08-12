@@ -4,7 +4,7 @@
  * Plugin Name: IP Login Restrictor
  * Plugin URI: https://github.com/taman777/ip-login-restrictor
  * Description: 指定された IP アドレス・CIDR だけが WordPress にログイン・管理画面にアクセスできます。wp-config.php に定義すれば緊急避難IPも許可されます。
- * Version: 1.1.6
+ * Version: 1.1.7
  * Author: T.Satoh @ GTI Inc.
  * Text Domain: ip-login-restrictor
  * Domain Path: /languages
@@ -22,9 +22,9 @@ use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 class IP_Login_Restrictor
 {
 
-    const OPTION_IPS       = 'ip_login_restrictor_ips';
-    const OPTION_ENABLED   = 'ip_login_restrictor_enabled'; // '1' or '0'
-    const OPTION_MSG_BODY  = 'ip_login_restrictor_message_body_html'; // ← 本文のみHTML
+    const OPTION_IPS      = 'ip_login_restrictor_ips';
+    const OPTION_ENABLED  = 'ip_login_restrictor_enabled'; // '1' or '0'
+    const OPTION_MSG_BODY = 'ip_login_restrictor_message_body_html'; // 本文のみHTML
 
     /** @var string 管理メニューのフック名（load-フックでPOST処理用） */
     private $menu_hook = '';
@@ -67,7 +67,18 @@ class IP_Login_Restrictor
         }
     }
 
-    /** 有効化時: いきなりONにしない。本文HTMLのデフォルトも用意 */
+    /** 翻訳対応のデフォルト本文（HTML）を返す */
+    private function get_default_body_html_translated()
+    {
+        // トークンはこのまま保持（後で置換）
+        $tpl = __(
+            '<h1>Access Denied</h1><p class="description">This IP address ({ip}) is not allowed to access the admin/login of {site_name}.<br><small>As of {datetime}</small></p>',
+            'ip-login-restrictor'
+        );
+        return $tpl;
+    }
+
+    /** 有効化時: いきなりONにしない。本文HTMLのデフォルトも翻訳で用意 */
     public static function activate()
     {
         if (get_option(self::OPTION_ENABLED, null) === null) {
@@ -77,11 +88,9 @@ class IP_Login_Restrictor
             add_option(self::OPTION_IPS, []);
         }
         if (get_option(self::OPTION_MSG_BODY, null) === null) {
-            // テーマの header/footer を使う前提なので本文だけ
-            add_option(
-                self::OPTION_MSG_BODY,
-                '<h1>アクセスが拒否されました</h1><p class="description">このIPアドレス（{ip}）からは、{site_name} の管理画面/ログインページにアクセスできません。<br><small>{datetime} 現在</small></p>'
-            );
+            // インスタンスを作って翻訳済みテンプレをセット
+            // 静的メソッドで翻訳済みテンプレをセット
+            add_option(self::OPTION_MSG_BODY, self::get_default_body_html_translated());
         }
     }
 
@@ -99,7 +108,7 @@ class IP_Login_Restrictor
         return get_option(self::OPTION_ENABLED, '0') === '1';
     }
 
-    /** アクセスチェック本体（テーマの header/footer + Body HTML を使用） */
+    /** アクセスチェック本体（常にプレーンHTMLで安全に返す） */
     public function check_access()
     {
         if (!$this->is_enabled()) return;
@@ -120,7 +129,11 @@ class IP_Login_Restrictor
             nocache_headers();
             header('Content-Type: text/html; charset=UTF-8');
 
-            $body_html = get_option(self::OPTION_MSG_BODY, __('Access denied. Your IP address is not allowed.', 'ip-login-restrictor'));
+            // 本文（未設定や空なら翻訳済みデフォルトで補填）
+            $body_html = get_option(self::OPTION_MSG_BODY, '');
+            if ($body_html === '') {
+                $body_html = $this->get_default_body_html_translated();
+            }
             $body_html = wp_kses_post($body_html);
 
             // 置換トークン
@@ -131,7 +144,7 @@ class IP_Login_Restrictor
             ];
             $body_html = strtr($body_html, $replacements);
 
-            // 管理画面など：プレーンHTMLにフォールバック
+            // プレーンHTMLで返す（テーマ非依存）
             echo '<!doctype html><html lang="' . esc_attr(get_bloginfo('language')) . '"><head><meta charset="utf-8"><title>' . esc_html(__('Access Denied', 'ip-login-restrictor')) . '</title>';
             echo '<meta name="viewport" content="width=device-width,initial-scale=1">';
             echo '<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.6;background:#f8f9fa;color:#212529;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}.box{max-width:720px;background:#fff;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.08);padding:28px}</style>';
@@ -225,6 +238,15 @@ class IP_Login_Restrictor
             update_option(self::OPTION_MSG_BODY, wp_kses_post($_POST['ip_login_restrictor_message_body_html']));
         }
 
+        // 「デフォルトに戻す」ボタン
+        if (isset($_POST['iplr_restore_default_body']) && $_POST['iplr_restore_default_body'] === '1') {
+            update_option(self::OPTION_MSG_BODY, $this->get_default_body_html_translated());
+        }
+
+        // 空なら翻訳済みデフォルトで補填
+        if (get_option(self::OPTION_MSG_BODY, '') === '') {
+            update_option(self::OPTION_MSG_BODY, $this->get_default_body_html_translated());
+        }
         // 保存後に安全にリダイレクト（管理バーも最新状態で描画）
         wp_safe_redirect(
             add_query_arg(
@@ -281,6 +303,12 @@ class IP_Login_Restrictor
                     <?php _e('You can use basic HTML. Disallowed tags will be removed for security. Available tokens: {ip}, {datetime}, {site_name}.', 'ip-login-restrictor'); ?>
                 </p>
                 <textarea name="ip_login_restrictor_message_body_html" rows="10" cols="80"><?php echo esc_textarea($msg_body); ?></textarea>
+
+                <p style="margin-top:8px;">
+                    <button type="submit" name="iplr_restore_default_body" value="1" class="button">
+                        <?php _e('Restore default message', 'ip-login-restrictor'); ?>
+                    </button>
+                </p>
 
                 <p class="submit" style="margin-top:18px;">
                     <input type="submit" class="button-primary" value="<?php esc_attr_e('Save Changes', 'ip-login-restrictor'); ?>">

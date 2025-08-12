@@ -89,7 +89,8 @@ class IP_Login_Restrictor
         }
         if (get_option(self::OPTION_MSG_BODY, null) === null) {
             // インスタンスを作って翻訳済みテンプレをセット
-            add_option(self::OPTION_MSG_BODY, (new self)->get_default_body_html_translated());
+            // 静的メソッドで翻訳済みテンプレをセット
+            add_option(self::OPTION_MSG_BODY, self::get_default_body_html_translated());
         }
     }
 

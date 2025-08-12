@@ -246,7 +246,6 @@ class IP_Login_Restrictor
         if (get_option(self::OPTION_MSG_BODY, '') === '') {
             update_option(self::OPTION_MSG_BODY, $this->get_default_body_html_translated());
         }
-
         // 保存後に安全にリダイレクト（管理バーも最新状態で描画）
         wp_safe_redirect(
             add_query_arg(

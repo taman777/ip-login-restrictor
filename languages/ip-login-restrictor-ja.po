@@ -11,6 +11,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 3.6\n"
 
+msgid "Access Denied"
+msgstr "アクセス拒否"
+
 msgid "Access denied. Your IP address is not allowed."
 msgstr "アクセス拒否。このIPアドレスからのアクセスは許可されていません。"
 
@@ -79,3 +82,9 @@ msgstr "IP制限：%s"
 
 msgid "Your IP: %s"
 msgstr "あなたのIP：%s"
+
+msgid "Access Denied Body (HTML)"
+msgstr "アクセス拒否本文（HTML）"
+
+msgid "You can use basic HTML. Disallowed tags will be removed for security. Available tokens: {ip}, {datetime}, {site_name}."
+msgstr "基本的なHTMLが使用できます。安全のため許可されないタグは削除されます。利用可能なトークン：{ip}、{datetime}、{site_name}。"

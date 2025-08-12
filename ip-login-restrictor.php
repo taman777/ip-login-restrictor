@@ -120,7 +120,7 @@ class IP_Login_Restrictor
             nocache_headers();
             header('Content-Type: text/html; charset=UTF-8');
 
-            $body_html = get_option(self::OPTION_MSG_BODY, '');
+            $body_html = get_option(self::OPTION_MSG_BODY, __('Access denied. Your IP address is not allowed.', 'ip-login-restrictor'));
             $body_html = wp_kses_post($body_html);
 
             // 置換トークン
@@ -131,16 +131,12 @@ class IP_Login_Restrictor
             ];
             $body_html = strtr($body_html, $replacements);
 
-            // テーマの header/footer を使用（安全性のため存在チェック）
-            if (function_exists('get_header') && function_exists('get_footer')) {
-                // 出力
-                get_header();
-                echo $body_html;
-                get_footer();
-            } else {
-                // フォールバック（プレーンHTML）
-                echo '<!doctype html><meta charset="utf-8"><title>Access Denied</title>' . $body_html;
-            }
+            // 管理画面など：プレーンHTMLにフォールバック
+            echo '<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>' . esc_html(__('Access Denied', 'ip-login-restrictor')) . '</title>';
+            echo '<meta name="viewport" content="width=device-width,initial-scale=1">';
+            echo '<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.6;background:#f8f9fa;color:#212529;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}.box{max-width:720px;background:#fff;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.08);padding:28px}</style>';
+            echo '</head><body><div class="box">' . $body_html . '</div></body></html>';
+
             exit;
         }
     }

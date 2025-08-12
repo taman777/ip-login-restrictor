@@ -7,6 +7,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: ChatGPT POT Generator\n"
 
+msgid "Access Denied"
+msgstr ""
+
 msgid "Access denied. Your IP address is not allowed."
 msgstr ""
 
@@ -76,4 +79,10 @@ msgid "IP Restrictor: %s"
 msgstr ""
 
 msgid "Your IP: %s"
+msgstr ""
+
+msgid "Access Denied Body (HTML)"
+msgstr ""
+
+msgid "You can use basic HTML. Disallowed tags will be removed for security. Available tokens: {ip}, {datetime}, {site_name}."
 msgstr ""

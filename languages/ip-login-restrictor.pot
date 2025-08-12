@@ -86,3 +86,9 @@ msgstr ""
 
 msgid "You can use basic HTML. Disallowed tags will be removed for security. Available tokens: {ip}, {datetime}, {site_name}."
 msgstr ""
+
+msgid "Restore default message"
+msgstr ""
+
+msgid "<h1>Access Denied</h1><p class=\"description\">This IP address ({ip}) is not allowed to access the admin/login of {site_name}.<br><small>As of {datetime}</small></p>"
+msgstr ""

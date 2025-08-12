@@ -88,3 +88,9 @@ msgstr "アクセス拒否本文（HTML）"
 
 msgid "You can use basic HTML. Disallowed tags will be removed for security. Available tokens: {ip}, {datetime}, {site_name}."
 msgstr "基本的なHTMLが使用できます。安全のため許可されないタグは削除されます。利用可能なトークン：{ip}、{datetime}、{site_name}。"
+
+msgid "Restore default message"
+msgstr "デフォルトメッセージに戻す"
+
+msgid "<h1>Access Denied</h1><p class=\"description\">This IP address ({ip}) is not allowed to access the admin/login of {site_name}.<br><small>As of {datetime}</small></p>"
+msgstr "<h1>アクセスが拒否されました</h1><p class=\"description\">このIPアドレス（{ip}）からは、{site_name} の管理画面/ログインページにアクセスできません。<br><small>{datetime} 現在</small></p>"

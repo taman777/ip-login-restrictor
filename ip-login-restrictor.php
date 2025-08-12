@@ -4,7 +4,7 @@
  * Plugin Name: IP Login Restrictor
  * Plugin URI: https://github.com/taman777/ip-login-restrictor
  * Description: 指定された IP アドレス・CIDR だけが WordPress にログイン・管理画面にアクセスできます。wp-config.php に定義すれば緊急避難IPも許可されます。
- * Version: 1.1.9
+ * Version: 1.1.6
  * Author: T.Satoh @ GTI Inc.
  * Text Domain: ip-login-restrictor
  * Domain Path: /languages

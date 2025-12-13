@@ -1,69 +1,38 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: IP Login Restrictor 1.1.6\n"
-"POT-Creation-Date: 2025-08-07 00:00+0900\n"
-"PO-Revision-Date: \n"
+"Project-Id-Version: IP Login Restrictor 1.2.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-12-13 17:30+0900\n"
+"PO-Revision-Date: 2025-12-13 17:30+0900\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 3.6\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Poedit 3.0\n"
 
-msgid "Access Denied"
-msgstr "アクセス拒否"
+msgid "IP Login Restrictor"
+msgstr "IP Login Restrictor"
 
-msgid "Access denied. Your IP address is not allowed."
-msgstr "アクセス拒否。このIPアドレスからのアクセスは許可されていません。"
+msgid "Success! IP %s has been added to the whitelist."
+msgstr "成功しました！ IPアドレス %s を許可リストに追加しました。"
+
+msgid "IP %s is already in the whitelist."
+msgstr "IPアドレス %s は既に許可リストに含まれています。"
+
+msgid "Rescue Mode"
+msgstr "レスキューモード"
+
+msgid "Proceed to Login"
+msgstr "ログイン画面へ進む"
 
 msgid "Settings saved."
 msgstr "設定を保存しました。"
 
 msgid "IP Login Restrictor Settings"
-msgstr "IPログイン制限設定"
-
-msgid "Allowed IP addresses or CIDR ranges (one per line):"
-msgstr "許可するIPアドレスまたはCIDR（1行に1つ）："
-
-msgid "Add current IP address"
-msgstr "現在のIPアドレスを追加"
-
-msgid "Your IP:"
-msgstr "あなたのIP："
-
-msgid "Access Denied Message"
-msgstr "アクセス拒否メッセージ"
-
-msgid "This message is shown when access is denied due to IP restriction."
-msgstr "IP制限によりアクセスが拒否された場合に表示されるメッセージです。"
-
-msgid "Save Changes"
-msgstr "変更を保存"
-
-msgid "Emergency IP:"
-msgstr "緊急IP："
-
-msgid "You can add"
-msgstr "次を追加できます："
-
-msgid "to wp-config.php to allow access."
-msgstr "をwp-config.phpに追加するとアクセスを許可します。"
-
-msgid "Disable restriction:"
-msgstr "制限を無効化："
-
-msgid "Add"
-msgstr "追加"
-
-msgid "to disable all IP restrictions."
-msgstr "を追加するとすべてのIP制限を無効にします。"
-
-msgid "This IP address is already added."
-msgstr "このIPアドレスはすでに追加されています。"
-
-msgid "IP Login Restrictor"
-msgstr "IPログイン制限"
+msgstr "IP Login Restrictor 設定"
 
 msgid "Status"
 msgstr "ステータス"
@@ -75,22 +44,102 @@ msgid "Disabled"
 msgstr "無効"
 
 msgid "When enabled, admin/login access is restricted by the whitelist below."
-msgstr "有効な場合、管理者/ログインアクセスは以下のホワイトリストによって制限されます。"
+msgstr "有効にすると、下記の許可リストに基づいて管理画面・ログイン画面へのアクセスが制限されます。"
 
-msgid "IP Restrictor: %s"
-msgstr "IP制限：%s"
+msgid "Frontend Restriction"
+msgstr "フロントエンド（通常ページ）の制限"
 
-msgid "Your IP: %s"
-msgstr "あなたのIP：%s"
+msgid "Restrict Frontend"
+msgstr "制限する"
+
+msgid "Allow All (Default)"
+msgstr "すべて許可（デフォルト）"
+
+msgid "If enabled, normal pages (frontend) will also be restricted by the same IP whitelist. (Main plugin status must be Enabled)"
+msgstr "「制限する」を選択すると、通常のページ（フロントエンド）もIP許可リストに基づいて制限されます。（※メインのステータスが「有効」である必要があります）"
+
+msgid "Rescue URL"
+msgstr "レスキューURL（緊急用）"
+
+msgid "Set a secret key to create a rescue URL. Accessing this URL will automatically add your current IP to the whitelist."
+msgstr "秘密のキーを設定すると、レスキューURLが生成されます。このURLにアクセスすると、あなたの現在のIPアドレスが自動的に許可リストに追加されます。"
+
+msgid "Rescue Key:"
+msgstr "レスキューキー:"
+
+msgid "Your Rescue URL:"
+msgstr "あなたのレスキューURL:"
+
+msgid "Admin & Login Allowed IPs"
+msgstr "許可IPリスト（管理画面・ログイン・全般）"
+
+msgid "These IPs can access EVERYTHING (Admin, Login, and Frontend)."
+msgstr "ここに追加されたIPは、すべてのエリア（管理画面、ログイン画面、フロントエンド）にアクセスできます。"
+
+msgid "Add current IP to Admin List"
+msgstr "現在のIPを管理用リストに追加"
+
+msgid "Your IP:"
+msgstr "あなたのIP:"
+
+msgid "Frontend Only Allowed IPs"
+msgstr "許可IPリスト（フロントエンド専用）"
+
+msgid "These IPs can ONLY access the Frontend (Normal pages). Ignored if Frontend Restriction is disabled."
+msgstr "ここに追加されたIPは、フロントエンド（通常のページ）のみアクセスできます。管理画面には入れません。\n※「フロントエンドの制限」が無効の場合は無視されます。"
+
+msgid "Add current IP to Frontend List"
+msgstr "現在のIPをフロント用リストに追加"
 
 msgid "Access Denied Body (HTML)"
-msgstr "アクセス拒否本文（HTML）"
+msgstr "アクセス拒否画面の本文 (HTML)"
 
 msgid "You can use basic HTML. Disallowed tags will be removed for security. Available tokens: {ip}, {datetime}, {site_name}."
-msgstr "基本的なHTMLが使用できます。安全のため許可されないタグは削除されます。利用可能なトークン：{ip}、{datetime}、{site_name}。"
+msgstr "拒否画面に表示するメッセージをHTMLで記述できます。危険なタグは除去されます。利用可能なトークン: {ip}, {datetime}, {site_name}"
 
 msgid "Restore default message"
-msgstr "デフォルトメッセージに戻す"
+msgstr "デフォルトのメッセージに戻す"
+
+msgid "Save Changes"
+msgstr "変更を保存"
+
+msgid "Emergency IP:"
+msgstr "緊急時のIP追加:"
+
+msgid "You can add"
+msgstr "wp-config.php に以下を追記することで、IPを許可できます。"
+
+msgid "to wp-config.php to allow access."
+msgstr ""
+
+msgid "Disable restriction:"
+msgstr "制限の強制解除:"
+
+msgid "Add"
+msgstr "wp-config.php に以下を追記することで、すべての制限を無効化できます。"
+
+msgid "to disable all IP restrictions."
+msgstr ""
+
+msgid "This IP address is already added."
+msgstr "このIPアドレスは既に追加されています。"
+
+msgid "IP Restrictor: %s"
+msgstr "IP制限: %s"
+
+msgid "Your IP: %s"
+msgstr "あなたのIP: %s"
+
+msgid "Access Denied"
+msgstr "Access Denied"
 
 msgid "<h1>Access Denied</h1><p class=\"description\">This IP address ({ip}) is not allowed to access the admin/login of {site_name}.<br><small>As of {datetime}</small></p>"
-msgstr "<h1>アクセスが拒否されました</h1><p class=\"description\">このIPアドレス（{ip}）からは、{site_name} の管理画面/ログインページにアクセスできません。<br><small>{datetime} 現在</small></p>"
+msgstr "<h1>アクセス拒否</h1><p class=\"description\">あなたのIPアドレス ({ip}) は、{site_name} の管理画面/ログイン画面へのアクセスを許可されていません。<br><small>日時: {datetime}</small></p>"
+
+msgid "(+Frontend)"
+msgstr "(+フロント)"
+
+
+msgid "This is your safety net if your IP address changes and you get locked out. Set a secret key below to generate your unique Rescue URL. Accessing that URL will automatically add your new IP to the Admin Whitelist. **Please bookmark the generated URL immediately.**"
+msgstr "IPアドレスが変わってロックアウトされた場合、このレスキューURLが命綱になります。秘密のキーを設定してURLを生成してください。そのURLにアクセスすると、現在のIPが自動的に管理用ホワイトリストに追加されます。**生成されたURLは必ずブックマークしてください。**"
+

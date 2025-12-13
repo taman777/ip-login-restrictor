@@ -1,81 +1,79 @@
 === IP Login Restrictor ===
-Contributors: gti-inc
-Tags: security, IP, login, admin, restrict
+Contributors: gti-inc, taman777
+Tags: security, ip, restriction, login, admin, maintenance, staging
 Requires at least: 5.0
-Tested up to: 6.8.2
-Stable tag: 1.1.7
+Tested up to: 6.5
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Restrict access to the WordPress login page and admin area by specific IP addresses or CIDR ranges. Supports emergency IP configuration via wp-config.php.
+Restrict login, admin, and frontend access by IP address. Includes Rescue URL and emergency override. Ideal for staging sites.
 
 == Description ==
 
-This plugin allows you to restrict access to the WordPress login page (`wp-login.php`) and admin area (`wp-admin/`) to specific IP addresses or CIDR ranges.
+This plugin provides a robust way to restrict access to your WordPress site based on IP addresses.
+It is perfect for **securing your admin area** or **privately sharing a staging site** during development.
 
-日本語の説明はこちら → readme-ja.txt を参照してください。
+**Key Features:**
 
-**Features:**
+*   **Dual Whitelists:** Configure separate IP lists for "Admin/Login" and "Frontend Only".
+    *   **Admin/Login:** Secures `wp-admin` and `wp-login.php`.
+    *   **Frontend:** Secures public pages (perfect for "Maintenance Mode" or private beta).
+*   **Rescue URL (Emergency Access):** Generate a secret URL (e.g., `/?iplr_rescue=mysecretkey`) to automatically add your new IP to the whitelist if you get locked out.
+*   **Ideal for Staging:** Easily restrict access to your development site so only clients or team members can see it.
+*   **HTML Custom Message:** Customize the "Access Denied" screen with HTML. It automatically inherits your theme's header and footer for a seamless look.
+*   **CIDR Support:** Works with individual IPs (e.g., `192.168.1.1`) and ranges (e.g., `192.168.1.0/24`).
+*   **Admin Bar Status:** Quickly see if restriction is Enabled/Disabled and check your current IP from the admin bar.
+*   **Emergency Override:** Supports `wp-config.php` constants for emergency access.
 
-- Restrict `wp-login.php` and `wp-admin/` access to allowed IP addresses only
-- Supports CIDR notation (e.g., `192.168.1.0/24`)
-- Toggle restriction **ON/OFF** from the admin menu (radio button)
-- Allow an emergency IP via `wp-config.php`:
-  `define('WP_LOGIN_IP_ADDRESS', '123.123.123.123');`
-- Disable all restrictions temporarily:
-  `define('REMOVE_WP_LOGIN_IP_ADDRESS', true);`
-- Edit allowed IP list from the admin page
-- HTML-based access denied message, independent of theme header/footer
-- Available tokens in the message: `{ip}`, `{datetime}`, `{site_name}`
-- Add your current IP with one click
-- Displays status and current IP in the admin bar
-- Supports auto-update notifications via GitHub
+**Use Cases:**
 
-**Note:** `admin-ajax.php` and `admin-post.php` are not affected.
+*   **Security:** Block all brute-force attacks by allowing login only from your office or home.
+*   **Staging/Dev Sites:** Limit visibility of a work-in-progress site to specific stakeholders without dealing with password management.
+*   **Intranet:** Use WordPress as an internal tool accessible only from your VPN or corporate network.
 
 == Installation ==
 
-1. Upload the plugin to `/wp-content/plugins/ip-login-restrictor` or install it via the WordPress admin panel.
-2. Activate the plugin from the "Plugins" menu.
-3. Configure the allowed IP addresses in the "IP Login Restrictor" menu.
+1. Upload the plugin files to the `/wp-content/plugins/ip-login-restrictor` directory, or install the plugin through the WordPress plugins screen directly.
+2. Activate the plugin through the 'Plugins' screen in WordPress.
+3. Go to **Settings > IP Login Restrictor** to configure.
+4. Add your IP address to the whitelist and set the status to **Enabled**.
+5. (Recommended) Set a **Rescue Key** and bookmark the generated URL.
 
 == Frequently Asked Questions ==
 
-= How do I allow an emergency IP? =  
-Add the following line to `wp-config.php`:
+= I locked myself out! What do I do? =
+If you set up a **Rescue URL**, access it now to whitelist your new IP.
+If not, you can manually add your IP via FTP. Add this to your `wp-config.php`:
+`define('WP_LOGIN_IP_ADDRESS', 'YOUR.IP.ADDRESS');`
 
-`define('WP_LOGIN_IP_ADDRESS', '123.123.123.123');`
-
-= How do I disable all IP restrictions temporarily? =  
-Add the following line to `wp-config.php`:
-
+= How do I disable the plugin via FTP? =
+Add this line to `wp-config.php` to bypass all restrictions:
 `define('REMOVE_WP_LOGIN_IP_ADDRESS', true);`
+
+= Can I restrict the public site but allow everyone to login? =
+No. If you restrict the Frontend, you usually restrict Admin/Login too. The "Admin IP List" allows access to EVERYTHING (Admin + Frontend). The "Frontend IP List" only allows access to the Frontend.
 
 == Screenshots ==
 
-1. Allowed IP settings screen (with emergency IP description)
-2. Access denied message customization (HTML)
+1. Settings Page: Manage IP lists, Rescue URL, and Custom Message.
+2. Rescue URL settings.
+3. Access Denied screen (inherits theme design).
 
 == Changelog ==
 
+= 1.2.0 =
+*   **New:** Rescue URL feature! Generate a secret link to auto-whitelist your new IP.
+*   **New:** Frontend Restriction! Optionally restrict access to public pages (great for staging sites).
+*   **New:** Separate whitelist for "Frontend Only" access.
+*   **Update:** Admin bar now shows if Frontend restriction is active.
+*   **Update:** Improved "Access Denied" message styling options.
+*   **Fix:** Resolved localization issues (Japanese support improved).
+
 = 1.1.6 =
-* Added ON/OFF toggle from settings page
-* Access denied message can now be customized with HTML (theme-independent)
-* Added `{ip}`, `{datetime}`, `{site_name}` tokens to message body
-* Added translation for default message
+*   Added enable/disable toggle
+*   Added admin bar status
+*   Added HTML message support
 
-= 1.1.1 =
-* Added `REMOVE_WP_LOGIN_IP_ADDRESS` override
-* Added LOLIPOP! fixed IP service link
-* Added current IP auto-fill and emergency access info
-* UI improvements and minor fixes
-
-= 1.0 =
-* Initial release
-
-== License ==
-This plugin is licensed under the GNU General Public License v2 or later.
-
-== Third-party Libraries ==
-* Plugin Update Checker (MIT License)  
-  https://github.com/YahnisElsts/plugin-update-checker
+= 1.0.0 =
+*   Initial release

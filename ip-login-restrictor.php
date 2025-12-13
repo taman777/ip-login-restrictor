@@ -4,7 +4,7 @@
  * Plugin Name: IP Login Restrictor
  * Plugin URI: https://github.com/taman777/ip-login-restrictor
  * Description: 指定された IP アドレス・CIDR だけが WordPress にログイン・管理画面にアクセスできます。wp-config.php に定義すれば緊急避難IPも許可されます。
- * Version: 1.1.7
+ * Version: 1.2.0
  * Author: T.Satoh @ GTI Inc.
  * Text Domain: ip-login-restrictor
  * Domain Path: /languages
@@ -19,12 +19,17 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
+if (!class_exists('IP_Login_Restrictor')) {
+
 class IP_Login_Restrictor
 {
 
-    const OPTION_IPS      = 'ip_login_restrictor_ips';
-    const OPTION_ENABLED  = 'ip_login_restrictor_enabled'; // '1' or '0'
-    const OPTION_MSG_BODY = 'ip_login_restrictor_message_body_html'; // 本文のみHTML
+    const OPTION_IPS          = 'ip_login_restrictor_ips';
+    const OPTION_FRONTEND_IPS = 'ip_login_restrictor_frontend_ips';
+    const OPTION_ENABLED      = 'ip_login_restrictor_enabled'; // '1' or '0'
+    const OPTION_FRONTEND_ENABLED = 'ip_login_restrictor_frontend_enabled'; // '1' or '0'
+    const OPTION_RESCUE_KEY       = 'ip_login_restrictor_rescue_key';
+    const OPTION_MSG_BODY     = 'ip_login_restrictor_message_body_html'; // 本文のみHTML
 
     /** @var string 管理メニューのフック名（load-フックでPOST処理用） */
     private $menu_hook = '';
@@ -32,7 +37,18 @@ class IP_Login_Restrictor
     public function __construct()
     {
         add_action('plugins_loaded', [$this, 'load_textdomain']);
-        add_action('init',            [$this, 'check_access']);
+
+        // Rescue URL チェック (template_redirect なら安全)
+        add_action('template_redirect', [$this, 'handle_rescue_request'], 1);
+
+        // アクセス制限チェック
+        // フロントエンド
+        add_action('template_redirect', [$this, 'check_access']);
+        // ログイン画面
+        add_action('login_init',        [$this, 'check_access']);
+        // 管理画面（admin-ajax等も含む）
+        add_action('admin_init',        [$this, 'check_access']);
+
         add_action('admin_menu',      [$this, 'add_admin_menu']);
         add_action('admin_bar_menu',  [$this, 'add_admin_bar_status'], 100);
 
@@ -84,8 +100,14 @@ class IP_Login_Restrictor
         if (get_option(self::OPTION_ENABLED, null) === null) {
             add_option(self::OPTION_ENABLED, '0');
         }
+        if (get_option(self::OPTION_FRONTEND_ENABLED, null) === null) {
+            add_option(self::OPTION_FRONTEND_ENABLED, '0');
+        }
         if (get_option(self::OPTION_IPS, null) === null) {
             add_option(self::OPTION_IPS, []);
+        }
+        if (get_option(self::OPTION_FRONTEND_IPS, null) === null) {
+            add_option(self::OPTION_FRONTEND_IPS, []);
         }
         if (get_option(self::OPTION_MSG_BODY, null) === null) {
             // インスタンスを作って翻訳済みテンプレをセット
@@ -98,7 +120,10 @@ class IP_Login_Restrictor
     public static function uninstall()
     {
         delete_option(self::OPTION_IPS);
+        delete_option(self::OPTION_FRONTEND_IPS);
         delete_option(self::OPTION_ENABLED);
+        delete_option(self::OPTION_FRONTEND_ENABLED);
+        delete_option(self::OPTION_RESCUE_KEY);
         delete_option(self::OPTION_MSG_BODY);
     }
 
@@ -108,18 +133,50 @@ class IP_Login_Restrictor
         return get_option(self::OPTION_ENABLED, '0') === '1';
     }
 
+    /** フロントエンド制限が有効か */
+    private function is_frontend_enabled()
+    {
+        return get_option(self::OPTION_FRONTEND_ENABLED, '0') === '1';
+    }
+
     /** アクセスチェック本体（常にプレーンHTMLで安全に返す） */
     public function check_access()
     {
         if (!$this->is_enabled()) return;
         if (defined('REMOVE_WP_LOGIN_IP_ADDRESS') && REMOVE_WP_LOGIN_IP_ADDRESS === true) return;
 
-        // フロントや Ajax/post は除外
-        if (!(is_admin() || $this->is_login_page()) || $this->is_ajax_or_post()) return;
+        // Ajax/post は除外
+        if ($this->is_ajax_or_post()) return;
 
-        $allowed_ips = get_option(self::OPTION_IPS, []);
+        // 対象エリア判定
+        $is_admin_area = is_admin() || $this->is_login_page();
+
+        // 管理画面系ではなく、かつフロントエンド制限が無効なら何もしない
+        if (!$is_admin_area && !$this->is_frontend_enabled()) {
+            return;
+        }
+
+        $admin_ips = get_option(self::OPTION_IPS, []);
         if (defined('WP_LOGIN_IP_ADDRESS')) {
-            $allowed_ips[] = WP_LOGIN_IP_ADDRESS;
+             // 緊急避難IP対応（カンマ区切り/配列対応）
+             $emergency_ips = WP_LOGIN_IP_ADDRESS;
+             if (is_string($emergency_ips)) {
+                 $emergency_ips = preg_split('/[\s,]+/', $emergency_ips, -1, PREG_SPLIT_NO_EMPTY);
+             }
+             if (is_array($emergency_ips)) {
+                 $admin_ips = array_merge($admin_ips, $emergency_ips);
+             } elseif (is_string($emergency_ips) && $emergency_ips !== '') {
+                  $admin_ips[] = $emergency_ips;
+             }
+        }
+
+        if ($is_admin_area) {
+            // 管理画面エリア: 管理用IPリストのみ
+            $allowed_ips = $admin_ips;
+        } else {
+            // フロントエンド: 管理用 + フロント用
+            $frontend_ips = get_option(self::OPTION_FRONTEND_IPS, []);
+            $allowed_ips  = array_merge($admin_ips, $frontend_ips);
         }
 
         $remote_ip = $this->get_client_ip();
@@ -220,17 +277,36 @@ class IP_Login_Restrictor
 
         check_admin_referer('ip_login_restrictor_save');
 
+        // Rescue Key
+        if (isset($_POST['ip_login_restrictor_rescue_key'])) {
+            $key = sanitize_text_field($_POST['ip_login_restrictor_rescue_key']);
+            update_option(self::OPTION_RESCUE_KEY, $key);
+        }
+
         // 有効/無効
         if (isset($_POST['ip_login_restrictor_enabled'])) {
             $enabled = ($_POST['ip_login_restrictor_enabled'] === '1') ? '1' : '0';
             update_option(self::OPTION_ENABLED, $enabled);
         }
 
-        // 許可IP
+        // フロントエンド制限
+        if (isset($_POST['ip_login_restrictor_frontend_enabled'])) {
+            $frontend_enabled = ($_POST['ip_login_restrictor_frontend_enabled'] === '1') ? '1' : '0';
+            update_option(self::OPTION_FRONTEND_ENABLED, $frontend_enabled);
+        }
+
+        // 許可IP (Admin)
         if (isset($_POST['ip_login_restrictor_ips'])) {
             $lines = preg_split("/\r\n|\r|\n/", (string) $_POST['ip_login_restrictor_ips']);
             $ips   = array_filter(array_map('trim', array_map('sanitize_text_field', $lines)));
             update_option(self::OPTION_IPS, $ips);
+        }
+
+        // 許可IP (Frontend)
+        if (isset($_POST['ip_login_restrictor_frontend_ips'])) {
+            $lines = preg_split("/\r\n|\r|\n/", (string) $_POST['ip_login_restrictor_frontend_ips']);
+            $ips   = array_filter(array_map('trim', array_map('sanitize_text_field', $lines)));
+            update_option(self::OPTION_FRONTEND_IPS, $ips);
         }
 
         // 本文HTML（安全なHTMLに限定）
@@ -257,6 +333,38 @@ class IP_Login_Restrictor
         exit;
     }
 
+    /** 救済リクエスト処理 */
+    public function handle_rescue_request()
+    {
+        if (!isset($_GET['iplr_rescue'])) return;
+
+        $input_key = (string)$_GET['iplr_rescue'];
+        $stored_key = get_option(self::OPTION_RESCUE_KEY, '');
+
+        if ($stored_key !== '' && $input_key === $stored_key) {
+            $ip = $this->get_client_ip();
+            $ips = get_option(self::OPTION_IPS, []);
+            
+            // 既にリストにあるかチェック（IP or CIDR）
+            if (!$this->ip_in_allowed_list($ip, $ips)) {
+                $ips[] = $ip;
+                update_option(self::OPTION_IPS, $ips);
+                $msg = sprintf(__('Success! IP %s has been added to the whitelist.', 'ip-login-restrictor'), $ip);
+            } else {
+                $msg = sprintf(__('IP %s is already in the whitelist.', 'ip-login-restrictor'), $ip);
+            }
+
+            // 完了メッセージを表示してログインへ
+            wp_die(
+                '<h1>' . esc_html__('Rescue Mode', 'ip-login-restrictor') . '</h1>' .
+                '<p>' . esc_html($msg) . '</p>' .
+                '<p><a href="' . esc_url(wp_login_url()) . '">' . esc_html__('Proceed to Login', 'ip-login-restrictor') . '</a></p>',
+                __('Rescue Mode', 'ip-login-restrictor'),
+                ['response' => 200]
+            );
+        }
+    }
+
     /** 設定ページ（描画のみ。本文はtextareaでHTML可） */
     public function settings_page()
     {
@@ -266,8 +374,13 @@ class IP_Login_Restrictor
             echo '<div class="updated"><p>' . esc_html__('Settings saved.', 'ip-login-restrictor') . '</p></div>';
         }
 
+        $rescue_key = get_option(self::OPTION_RESCUE_KEY, '');
+        $rescue_url = $rescue_key ? home_url('/?iplr_rescue=' . $rescue_key) : '';
+
         $enabled    = $this->is_enabled();
-        $ips        = implode("\n", get_option(self::OPTION_IPS, []));
+        $frontend_enabled = $this->is_frontend_enabled();
+        $admin_ips        = implode("\n", get_option(self::OPTION_IPS, []));
+        $frontend_ips     = implode("\n", get_option(self::OPTION_FRONTEND_IPS, []));
         $msg_body   = (string) get_option(self::OPTION_MSG_BODY, '');
         $current_ip = esc_html($this->get_client_ip());
 ?>
@@ -288,15 +401,54 @@ class IP_Login_Restrictor
                 <p class="description">
                     <?php _e('When enabled, admin/login access is restricted by the whitelist below.', 'ip-login-restrictor'); ?>
                 </p>
+
+                <h2><?php _e('Frontend Restriction', 'ip-login-restrictor'); ?></h2>
+                <label style="display:inline-block;margin-right:16px;">
+                    <input type="radio" name="ip_login_restrictor_frontend_enabled" value="1" <?php checked($frontend_enabled, true); ?>>
+                    <span style="color:#1f8f3a;font-weight:700;"><?php _e('Restrict Frontend', 'ip-login-restrictor'); ?></span>
+                </label>
+                <label style="display:inline-block;">
+                    <input type="radio" name="ip_login_restrictor_frontend_enabled" value="0" <?php checked($frontend_enabled, false); ?>>
+                    <span style="color:#6c757d;font-weight:700;"><?php _e('Allow All (Default)', 'ip-login-restrictor'); ?></span>
+                </label>
+                <p class="description">
+                    <?php _e('If enabled, normal pages (frontend) will also be restricted by the same IP whitelist. (Main plugin status must be Enabled)', 'ip-login-restrictor'); ?>
+                </p>
                 <hr>
 
-                <p><?php _e('Allowed IP addresses or CIDR ranges (one per line):', 'ip-login-restrictor'); ?></p>
-                <textarea name="ip_login_restrictor_ips" rows="10" cols="60"><?php echo esc_textarea($ips); ?></textarea><br>
-
+                <h2><?php _e('Rescue URL', 'ip-login-restrictor'); ?></h2>
+                <p class="description">
+                    <?php _e('This is your safety net if your IP address changes and you get locked out. Set a secret key below to generate your unique Rescue URL. Accessing that URL will automatically add your new IP to the Admin Whitelist. **Please bookmark the generated URL immediately.**', 'ip-login-restrictor'); ?>
+                </p>
                 <p>
-                    <button type="button" class="button" onclick="addCurrentIP()"><?php _e('Add current IP address', 'ip-login-restrictor'); ?></button>
+                    <label>
+                        <?php _e('Rescue Key:', 'ip-login-restrictor'); ?>
+                        <input type="text" name="ip_login_restrictor_rescue_key" value="<?php echo esc_attr($rescue_key); ?>" class="regular-text" placeholder="e.g. secret-key-123">
+                    </label>
+                </p>
+                <?php if ($rescue_url): ?>
+                    <p style="background:#fff;padding:10px;border:1px solid #ddd;display:inline-block;">
+                        <strong><?php _e('Your Rescue URL:', 'ip-login-restrictor'); ?></strong><br>
+                        <code><a href="<?php echo esc_url($rescue_url); ?>" target="_blank"><?php echo esc_html($rescue_url); ?></a></code>
+                    </p>
+                <?php endif; ?>
+                
+                <hr>
+
+                <h3><?php _e('Admin & Login Allowed IPs', 'ip-login-restrictor'); ?></h3>
+                <p class="description"><?php _e('These IPs can access EVERYTHING (Admin, Login, and Frontend).', 'ip-login-restrictor'); ?></p>
+                <textarea name="ip_login_restrictor_ips" rows="8" cols="60"><?php echo esc_textarea($admin_ips); ?></textarea>
+                <p>
+                    <button type="button" class="button" onclick="addCurrentIP('ip_login_restrictor_ips')"><?php _e('Add current IP to Admin List', 'ip-login-restrictor'); ?></button>
                     <span style="margin-left:10px;"><?php _e('Your IP:', 'ip-login-restrictor'); ?> <?php echo $current_ip; ?></span>
                 </p>
+
+                <h3><?php _e('Frontend Only Allowed IPs', 'ip-login-restrictor'); ?></h3>
+                <p class="description"><?php _e('These IPs can ONLY access the Frontend (Normal pages). Ignored if Frontend Restriction is disabled.', 'ip-login-restrictor'); ?></p>
+                <textarea name="ip_login_restrictor_frontend_ips" rows="8" cols="60"><?php echo esc_textarea($frontend_ips); ?></textarea>
+                <p>
+                    <button type="button" class="button" onclick="addCurrentIP('ip_login_restrictor_frontend_ips')"><?php _e('Add current IP to Frontend List', 'ip-login-restrictor'); ?></button>
+                </p><br>
 
                 <h2><?php _e('Access Denied Body (HTML)', 'ip-login-restrictor'); ?></h2>
                 <p class="description">
@@ -327,17 +479,80 @@ class IP_Login_Restrictor
             </p>
 
             <!-- 国際化なしの告知 -->
-            <p>
-                安心して管理画面にアクセスするために固定IPが必要ですか？<br>
-                <a href="https://vpn.lolipop.jp/" target="_blank" rel="noopener noreferrer">
-                    LOLIPOP!固定IPアクセス サービスをご覧ください
-                </a>
-            </p>
+            <style>
+                .iplr-promotion-box {
+                    background: #f0f6fc;
+                    border: 1px solid #cce5ff;
+                    border-left: 4px solid #0073aa;
+                    border-radius: 4px;
+                    padding: 20px;
+                    margin-top: 30px;
+                    display: flex;
+                    align-items: center;
+                    gap: 20px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+                }
+                .iplr-promotion-icon .dashicons {
+                    font-size: 48px;
+                    width: 48px;
+                    height: 48px;
+                    color: #0073aa;
+                }
+                .iplr-promotion-content h3 {
+                    margin: 0 0 8px;
+                    font-size: 1.2em;
+                    color: #1d2327;
+                }
+                .iplr-promotion-content p {
+                    margin: 0 0 12px;
+                    color: #50575e;
+                    font-size: 14px;
+                }
+                .iplr-promotion-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    background: #d63638; /* 目立つ色に */
+                    color: #fff;
+                    text-decoration: none;
+                    padding: 8px 18px;
+                    border-radius: 4px;
+                    font-weight: 600;
+                    font-size: 14px;
+                    transition: all 0.2s ease;
+                }
+                .iplr-promotion-btn:hover {
+                    background: #b32d2e;
+                    color: #fff;
+                    transform: translateY(-1px);
+                }
+                .iplr-promotion-btn .dashicons {
+                    margin-left: 6px;
+                    font-size: 16px;
+                    width: 16px;
+                    height: 16px;
+                    line-height: 1.4;
+                }
+            </style>
+            <div class="iplr-promotion-box">
+                <div class="iplr-promotion-icon">
+                    <span class="dashicons dashicons-shield-alt"></span>
+                </div>
+                <div class="iplr-promotion-content">
+                    <h3>安心して管理画面にアクセスするために固定IPが必要ですか？</h3>
+                    <p>
+                        固定IPがあれば、IP制限を最大限に活用してセキュリティを強化できます。<br>
+                        外出先や動的IP環境でも、安全かつスムーズに管理画面へアクセスしたい方へおすすめです。
+                    </p>
+                    <a href="https://vpn.lolipop.jp/" target="_blank" rel="noopener noreferrer" class="iplr-promotion-btn">
+                        LOLIPOP! 固定IPアクセス サービスを見る <span class="dashicons dashicons-external"></span>
+                    </a>
+                </div>
+            </div>
         </div>
         <script>
-            function addCurrentIP() {
+            function addCurrentIP(targetName) {
                 const ip = "<?php echo esc_js($this->get_client_ip()); ?>";
-                const textarea = document.querySelector('textarea[name="ip_login_restrictor_ips"]');
+                const textarea = document.querySelector('textarea[name="' + targetName + '"]');
                 const lines = textarea.value.split(/\r?\n/).map(l => l.trim());
                 if (!lines.includes(ip)) {
                     lines.push(ip);
@@ -357,7 +572,17 @@ class IP_Login_Restrictor
         if (!current_user_can('manage_options')) return;
 
         $enabled = $this->is_enabled();
-        $status_text  = $enabled ? __('Enabled', 'ip-login-restrictor') : __('Disabled', 'ip-login-restrictor');
+        $frontend_enabled = $this->is_frontend_enabled();
+
+        if ($enabled) {
+            $status_text = __('Enabled', 'ip-login-restrictor');
+            if ($frontend_enabled) {
+                $status_text .= ' ' . __('(+Frontend)', 'ip-login-restrictor');
+            }
+        } else {
+            $status_text = __('Disabled', 'ip-login-restrictor');
+        }
+
         $parent_title = sprintf(__('IP Restrictor: %s', 'ip-login-restrictor'), $status_text);
 
         $wp_admin_bar->add_node([
@@ -404,6 +629,8 @@ class IP_Login_Restrictor
 <?php
     }
 }
+
+} // End if class_exists
 
 // 実行
 new IP_Login_Restrictor();

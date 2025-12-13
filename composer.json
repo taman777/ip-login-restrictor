@@ -1,0 +1,7 @@
+{
+    "name": "taman777/ip-login-restrictor",
+    "description": "IP Login Restrictor Plugin",
+    "require": {
+        "yahnis-elsts/plugin-update-checker": "^5.0"
+    }
+}

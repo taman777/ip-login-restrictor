@@ -418,7 +418,7 @@ class IP_Login_Restrictor
 
                 <h2><?php _e('Rescue URL', 'ip-login-restrictor'); ?></h2>
                 <p class="description">
-                    <?php _e('This is your safety net if your IP address changes and you get locked out. Set a secret key below to generate your unique Rescue URL. Accessing that URL will automatically add your new IP to the Admin Whitelist. **Please bookmark the generated URL immediately.**', 'ip-login-restrictor'); ?>
+                    <?php _e('This is your safety net if your IP address changes and you get locked out. Set a secret key below to generate your unique Rescue URL. Accessing that URL will automatically add your new IP to the Admin Whitelist. <b>Please bookmark the generated URL immediately.</b>', 'ip-login-restrictor'); ?>
                 </p>
                 <p>
                     <label>

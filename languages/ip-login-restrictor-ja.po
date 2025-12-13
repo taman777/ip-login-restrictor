@@ -140,6 +140,6 @@ msgid "(+Frontend)"
 msgstr "(+フロント)"
 
 
-msgid "This is your safety net if your IP address changes and you get locked out. Set a secret key below to generate your unique Rescue URL. Accessing that URL will automatically add your new IP to the Admin Whitelist. **Please bookmark the generated URL immediately.**"
-msgstr "IPアドレスが変わってロックアウトされた場合、このレスキューURLが命綱になります。秘密のキーを設定してURLを生成してください。そのURLにアクセスすると、現在のIPが自動的に管理用ホワイトリストに追加されます。**生成されたURLは必ずブックマークしてください。**"
+msgid "This is your safety net if your IP address changes and you get locked out. Set a secret key below to generate your unique Rescue URL. Accessing that URL will automatically add your new IP to the Admin Whitelist. <b>Please bookmark the generated URL immediately.</b>"
+msgstr "IPアドレスが変わってロックアウトされた場合、このレスキューURLが命綱になります。秘密のキーを設定してURLを生成してください。そのURLにアクセスすると、現在のIPが自動的に管理用ホワイトリストに追加されます。<b>生成されたURLは必ずブックマークしてください。</b>"
 

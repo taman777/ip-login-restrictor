@@ -543,7 +543,7 @@ class IP_Login_Restrictor
                         固定IPがあれば、IP制限を最大限に活用してセキュリティを強化できます。<br>
                         外出先や動的IP環境でも、安全かつスムーズに管理画面へアクセスしたい方へおすすめです。
                     </p>
-                    <a href="https://vpn.lolipop.jp/" target="_blank" rel="noopener noreferrer" class="iplr-promotion-btn">
+                    <a href="https://vpn.lolipop.jp/signup?agency_code=f4702aa6f7ddvp" target="_blank" rel="noopener noreferrer" class="iplr-promotion-btn">
                         LOLIPOP! 固定IPアクセス サービスを見る <span class="dashicons dashicons-external"></span>
                     </a>
                 </div>

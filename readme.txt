@@ -3,7 +3,7 @@ Contributors: gti-inc, taman777
 Tags: security, ip, restriction, login, admin, maintenance, staging
 Requires at least: 5.0
 Tested up to: 6.5
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,9 @@ No. If you restrict the Frontend, you usually restrict Admin/Login too. The "Adm
 3. Access Denied screen (inherits theme design).
 
 == Changelog ==
+
+= 1.2.1 =
+*   **UX:** Frontend IP list section now auto-hides when "Allow All" is selected.
 
 = 1.2.0 =
 *   **New:** Rescue URL feature! Generate a secret link to auto-whitelist your new IP.

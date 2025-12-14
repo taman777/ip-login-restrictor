@@ -4,7 +4,7 @@
  * Plugin Name: IP Login Restrictor
  * Plugin URI: https://github.com/taman777/ip-login-restrictor
  * Description: 指定された IP アドレス・CIDR だけが WordPress にログイン・管理画面にアクセスできます。wp-config.php に定義すれば緊急避難IPも許可されます。
- * Version: 1.2.0
+ * Version: 1.2.1
  * Author: T.Satoh @ GTI Inc.
  * Text Domain: ip-login-restrictor
  * Domain Path: /languages
@@ -443,12 +443,14 @@ class IP_Login_Restrictor
                     <span style="margin-left:10px;"><?php _e('Your IP:', 'ip-login-restrictor'); ?> <?php echo $current_ip; ?></span>
                 </p>
 
-                <h3><?php _e('Frontend Only Allowed IPs', 'ip-login-restrictor'); ?></h3>
-                <p class="description"><?php _e('These IPs can ONLY access the Frontend (Normal pages). Ignored if Frontend Restriction is disabled.', 'ip-login-restrictor'); ?></p>
-                <textarea name="ip_login_restrictor_frontend_ips" rows="8" cols="60"><?php echo esc_textarea($frontend_ips); ?></textarea>
-                <p>
-                    <button type="button" class="button" onclick="addCurrentIP('ip_login_restrictor_frontend_ips')"><?php _e('Add current IP to Frontend List', 'ip-login-restrictor'); ?></button>
-                </p><br>
+                <div id="iplr-frontend-ips-section" style="<?php echo $frontend_enabled ? '' : 'display:none;'; ?>">
+                    <h3><?php _e('Frontend Only Allowed IPs', 'ip-login-restrictor'); ?></h3>
+                    <p class="description"><?php _e('These IPs can ONLY access the Frontend (Normal pages). Ignored if Frontend Restriction is disabled.', 'ip-login-restrictor'); ?></p>
+                    <textarea name="ip_login_restrictor_frontend_ips" rows="8" cols="60"><?php echo esc_textarea($frontend_ips); ?></textarea>
+                    <p>
+                        <button type="button" class="button" onclick="addCurrentIP('ip_login_restrictor_frontend_ips')"><?php _e('Add current IP to Frontend List', 'ip-login-restrictor'); ?></button>
+                    </p><br>
+                </div>
 
                 <h2><?php _e('Access Denied Body (HTML)', 'ip-login-restrictor'); ?></h2>
                 <p class="description">
@@ -561,6 +563,18 @@ class IP_Login_Restrictor
                     alert("<?php echo esc_js(__('This IP address is already added.', 'ip-login-restrictor')); ?>");
                 }
             }
+
+            // Toggle Frontend IPs section visibility
+            document.querySelectorAll('input[name="ip_login_restrictor_frontend_enabled"]').forEach(function(radio) {
+                radio.addEventListener('change', function() {
+                    const section = document.getElementById('iplr-frontend-ips-section');
+                    if (this.value === '1') {
+                        section.style.display = '';
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+            });
         </script>
     <?php
     }

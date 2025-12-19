@@ -4,7 +4,7 @@
  * Plugin Name: IP Login Restrictor
  * Plugin URI: https://github.com/taman777/ip-login-restrictor
  * Description: 指定された IP アドレス・CIDR だけが WordPress にログイン・管理画面にアクセスできます。wp-config.php に定義すれば緊急避難IPも許可されます。
- * Version: 1.2.1
+ * Version: 1.3.0
  * Author: T.Satoh @ GTI Inc.
  * Text Domain: ip-login-restrictor
  * Domain Path: /languages
@@ -29,7 +29,10 @@ class IP_Login_Restrictor
     const OPTION_ENABLED      = 'ip_login_restrictor_enabled'; // '1' or '0'
     const OPTION_FRONTEND_ENABLED = 'ip_login_restrictor_frontend_enabled'; // '1' or '0'
     const OPTION_RESCUE_KEY       = 'ip_login_restrictor_rescue_key';
+    const OPTION_RESCUE_PARAM     = 'ip_login_restrictor_rescue_param'; // URLパラメータキー
     const OPTION_MSG_BODY     = 'ip_login_restrictor_message_body_html'; // 本文のみHTML
+    const META_TEMPORARY_IPS  = '_iplr_temporary_ips'; // ページ固有の臨時IP
+    const META_TEMPORARY_IPS_MESSAGE = '_iplr_temporary_ips_message'; // ページ固有の拒否メッセージ
 
     /** @var string 管理メニューのフック名（load-フックでPOST処理用） */
     private $menu_hook = '';
@@ -55,6 +58,16 @@ class IP_Login_Restrictor
         // 管理バー色付け（有効=緑 / 無効=グレー）
         add_action('admin_head',      [$this, 'output_adminbar_css']);
         add_action('wp_head',         [$this, 'output_adminbar_css']);
+
+        // ページ単位の臨時IP設定用メタボックス
+        add_action('add_meta_boxes', [$this, 'add_temporary_ip_metabox']);
+        add_action('save_post',      [$this, 'save_temporary_ip_metabox']);
+
+        // 投稿一覧にカスタムカラム追加
+        add_filter('manage_posts_columns',       [$this, 'add_temporary_ip_column']);
+        add_filter('manage_pages_columns',       [$this, 'add_temporary_ip_column']);
+        add_action('manage_posts_custom_column', [$this, 'display_temporary_ip_column'], 10, 2);
+        add_action('manage_pages_custom_column', [$this, 'display_temporary_ip_column'], 10, 2);
 
         register_activation_hook(__FILE__, ['IP_Login_Restrictor', 'activate']);
         register_uninstall_hook(__FILE__,  ['IP_Login_Restrictor', 'uninstall']);
@@ -114,6 +127,9 @@ class IP_Login_Restrictor
             // 静的メソッドで翻訳済みテンプレをセット
             add_option(self::OPTION_MSG_BODY, self::get_default_body_html_translated());
         }
+        if (get_option(self::OPTION_RESCUE_PARAM, null) === null) {
+            add_option(self::OPTION_RESCUE_PARAM, 'iplr_rescue');
+        }
     }
 
     /** アンインストール時: 設定削除 */
@@ -124,6 +140,7 @@ class IP_Login_Restrictor
         delete_option(self::OPTION_ENABLED);
         delete_option(self::OPTION_FRONTEND_ENABLED);
         delete_option(self::OPTION_RESCUE_KEY);
+        delete_option(self::OPTION_RESCUE_PARAM);
         delete_option(self::OPTION_MSG_BODY);
     }
 
@@ -151,8 +168,21 @@ class IP_Login_Restrictor
         // 対象エリア判定
         $is_admin_area = is_admin() || $this->is_login_page();
 
-        // 管理画面系ではなく、かつフロントエンド制限が無効なら何もしない
-        if (!$is_admin_area && !$this->is_frontend_enabled()) {
+        // ページ個別の臨時IP設定を確認（フロントエンドの場合）
+        $page_temp_ips_active = false;
+        $post_id = 0;
+        if (!$is_admin_area) {
+            $post_id = get_queried_object_id();
+            if ($post_id) {
+                $enabled_meta = get_post_meta($post_id, self::META_TEMPORARY_IPS . '_enabled', true);
+                if ($enabled_meta === '1') {
+                    $page_temp_ips_active = true;
+                }
+            }
+        }
+
+        // 管理画面系ではなく、かつフロントエンド制限が無効、かつページ個別制限も無効なら何もしない
+        if (!$is_admin_area && !$this->is_frontend_enabled() && !$page_temp_ips_active) {
             return;
         }
 
@@ -177,6 +207,16 @@ class IP_Login_Restrictor
             // フロントエンド: 管理用 + フロント用
             $frontend_ips = get_option(self::OPTION_FRONTEND_IPS, []);
             $allowed_ips  = array_merge($admin_ips, $frontend_ips);
+
+            // ページ固有の臨時IPを追加（有効な場合）
+            if ($page_temp_ips_active && $post_id) {
+                $temporary_ips = get_post_meta($post_id, self::META_TEMPORARY_IPS, true);
+                if ($temporary_ips) {
+                    $temp_ips_array = preg_split("/\r\n|\r|\n/", $temporary_ips);
+                    $temp_ips_array = array_filter(array_map('trim', $temp_ips_array));
+                    $allowed_ips = array_merge($allowed_ips, $temp_ips_array);
+                }
+            }
         }
 
         $remote_ip = $this->get_client_ip();
@@ -194,10 +234,25 @@ class IP_Login_Restrictor
             $body_html = wp_kses_post($body_html);
 
             // 置換トークン
+            $page_message_html = '';
+            if ($post_id) {
+                $raw_msg = get_post_meta($post_id, self::META_TEMPORARY_IPS_MESSAGE, true);
+                if ($raw_msg) {
+                    $page_message_html = '<div class="page-message" style="margin: 15px 0; padding: 10px; background: #fff9c4; border-left: 4px solid #fbc02d; color: #333;">' . esc_html($raw_msg) . '</div>';
+                }
+            }
+
+            // トークンが含まれていないがメッセージがある場合、末尾に強制展開用として追加
+            if ($page_message_html !== '' && strpos($body_html, '{page_message}') === false) {
+                // <small>等のタグがある可能性を考慮して単純に末尾に追加
+                $body_html .= '{page_message}';
+            }
+
             $replacements = [
-                '{ip}'        => esc_html($remote_ip),
-                '{datetime}'  => esc_html(date_i18n('Y-m-d H:i:s')),
-                '{site_name}' => esc_html(get_bloginfo('name')),
+                '{ip}'           => esc_html($remote_ip),
+                '{datetime}'     => esc_html(date_i18n('Y-m-d H:i:s')),
+                '{site_name}'    => esc_html(get_bloginfo('name')),
+                '{page_message}' => $page_message_html,
             ];
             $body_html = strtr($body_html, $replacements);
 
@@ -277,10 +332,18 @@ class IP_Login_Restrictor
 
         check_admin_referer('ip_login_restrictor_save');
 
-        // Rescue Key
+        // Rescue Key & Param
         if (isset($_POST['ip_login_restrictor_rescue_key'])) {
             $key = sanitize_text_field($_POST['ip_login_restrictor_rescue_key']);
             update_option(self::OPTION_RESCUE_KEY, $key);
+        }
+        if (isset($_POST['ip_login_restrictor_rescue_param'])) {
+            $param = sanitize_text_field($_POST['ip_login_restrictor_rescue_param']);
+            // 空の場合はデフォルトに戻す
+            if ($param === '') {
+                $param = 'iplr_rescue';
+            }
+            update_option(self::OPTION_RESCUE_PARAM, $param);
         }
 
         // 有効/無効
@@ -336,9 +399,10 @@ class IP_Login_Restrictor
     /** 救済リクエスト処理 */
     public function handle_rescue_request()
     {
-        if (!isset($_GET['iplr_rescue'])) return;
+        $param_key = get_option(self::OPTION_RESCUE_PARAM, 'iplr_rescue');
+        if (!isset($_GET[$param_key])) return;
 
-        $input_key = (string)$_GET['iplr_rescue'];
+        $input_key = (string)$_GET[$param_key];
         $stored_key = get_option(self::OPTION_RESCUE_KEY, '');
 
         if ($stored_key !== '' && $input_key === $stored_key) {
@@ -375,7 +439,8 @@ class IP_Login_Restrictor
         }
 
         $rescue_key = get_option(self::OPTION_RESCUE_KEY, '');
-        $rescue_url = $rescue_key ? home_url('/?iplr_rescue=' . $rescue_key) : '';
+        $rescue_param = get_option(self::OPTION_RESCUE_PARAM, 'iplr_rescue');
+        $rescue_url = $rescue_key ? home_url('/?' . $rescue_param . '=' . $rescue_key) : '';
 
         $enabled    = $this->is_enabled();
         $frontend_enabled = $this->is_frontend_enabled();
@@ -422,7 +487,13 @@ class IP_Login_Restrictor
                 </p>
                 <p>
                     <label>
-                        <?php _e('Rescue Key:', 'ip-login-restrictor'); ?>
+                        <?php _e('Rescue Parameter Key:', 'ip-login-restrictor'); ?>
+                        <input type="text" name="ip_login_restrictor_rescue_param" value="<?php echo esc_attr($rescue_param); ?>" class="regular-text" placeholder="iplr_rescue">
+                    </label>
+                </p>
+                <p>
+                    <label>
+                        <?php _e('Rescue Key Value:', 'ip-login-restrictor'); ?>
                         <input type="text" name="ip_login_restrictor_rescue_key" value="<?php echo esc_attr($rescue_key); ?>" class="regular-text" placeholder="e.g. secret-key-123">
                     </label>
                 </p>
@@ -577,6 +648,156 @@ class IP_Login_Restrictor
             });
         </script>
     <?php
+    }
+
+    /** ページ単位の臨時IP設定用メタボックスを追加 */
+    public function add_temporary_ip_metabox()
+    {
+        $post_types = ['post', 'page'];
+        foreach ($post_types as $post_type) {
+            add_meta_box(
+                'iplr_temporary_ips',
+                __('IP Login Restrictor - Temporary IPs', 'ip-login-restrictor'),
+                [$this, 'render_temporary_ip_metabox'],
+                $post_type,
+                'side',
+                'default'
+            );
+        }
+    }
+
+    /** メタボックスの表示 */
+    public function render_temporary_ip_metabox($post)
+    {
+        wp_nonce_field('iplr_save_temporary_ips', 'iplr_temporary_ips_nonce');
+        $temporary_ips = get_post_meta($post->ID, self::META_TEMPORARY_IPS, true);
+        $temporary_ips_enabled = get_post_meta($post->ID, self::META_TEMPORARY_IPS . '_enabled', true);
+        // デフォルトは無効
+        if ($temporary_ips_enabled === '') {
+            $temporary_ips_enabled = '0';
+        }
+        $current_ip = esc_html($this->get_client_ip());
+        ?>
+        <div style="margin-bottom:12px;">
+            <label style="display:inline-block;margin-right:12px;">
+                <input type="radio" name="iplr_temporary_ips_enabled" value="1" <?php checked($temporary_ips_enabled, '1'); ?>>
+                <span style="color:#1f8f3a;font-weight:600;"><?php _e('Enable', 'ip-login-restrictor'); ?></span>
+            </label>
+            <label style="display:inline-block;">
+                <input type="radio" name="iplr_temporary_ips_enabled" value="0" <?php checked($temporary_ips_enabled, '0'); ?>>
+                <span style="color:#6c757d;font-weight:600;"><?php _e('Disable', 'ip-login-restrictor'); ?></span>
+            </label>
+        </div>
+        <p class="description">
+            <?php _e('Add temporary IP addresses for this page only. One IP per line. CIDR notation is supported.', 'ip-login-restrictor'); ?>
+        </p>
+        <p class="description" style="margin-top:8px;">
+            <?php _e('These IPs will be added to the default allowed IPs when accessing this page.', 'ip-login-restrictor'); ?>
+        </p>
+        <textarea name="iplr_temporary_ips" rows="6" style="width:100%;margin-top:10px;"><?php echo esc_textarea($temporary_ips); ?></textarea>
+        
+        <p style="margin-top:12px; font-weight:bold;"><?php _e('Custom Denied Message:', 'ip-login-restrictor'); ?></p>
+        <input type="text" name="iplr_temporary_ips_message" value="<?php echo esc_attr(get_post_meta($post->ID, self::META_TEMPORARY_IPS_MESSAGE, true)); ?>" style="width:100%;" placeholder="<?php _e('e.g. Please contact the administrator.', 'ip-login-restrictor'); ?>">
+        <p class="description"><?php _e('This message will replace the {page_message} token in the access denied body.', 'ip-login-restrictor'); ?></p>
+
+        <p style="margin-top:8px;">
+            <button type="button" class="button button-small" onclick="iplrAddCurrentIP()">
+                <?php _e('Add current IP', 'ip-login-restrictor'); ?>
+            </button>
+            <span style="margin-left:8px;font-size:11px;color:#666;">
+                <?php _e('Your IP:', 'ip-login-restrictor'); ?> <?php echo $current_ip; ?>
+            </span>
+        </p>
+        <script>
+            function iplrAddCurrentIP() {
+                const ip = "<?php echo esc_js($this->get_client_ip()); ?>";
+                const textarea = document.querySelector('textarea[name="iplr_temporary_ips"]');
+                const lines = textarea.value.split(/\r?\n/).map(l => l.trim());
+                if (!lines.includes(ip)) {
+                    lines.push(ip);
+                    textarea.value = lines.filter(Boolean).join("\n");
+                } else {
+                    alert("<?php echo esc_js(__('This IP address is already added.', 'ip-login-restrictor')); ?>");
+                }
+            }
+        </script>
+        <?php
+    }
+
+    /** メタボックスの保存 */
+    public function save_temporary_ip_metabox($post_id)
+    {
+        // Nonce チェック
+        if (!isset($_POST['iplr_temporary_ips_nonce']) || !wp_verify_nonce($_POST['iplr_temporary_ips_nonce'], 'iplr_save_temporary_ips')) {
+            return;
+        }
+
+        // 自動保存の場合は何もしない
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+
+        // 権限チェック
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+
+
+        // 臨時IP有効/無効の保存
+        if (isset($_POST['iplr_temporary_ips_enabled'])) {
+            $enabled = ($_POST['iplr_temporary_ips_enabled'] === '1') ? '1' : '0';
+            update_post_meta($post_id, self::META_TEMPORARY_IPS . '_enabled', $enabled);
+        }
+
+        // 臨時メッセージの保存
+        if (isset($_POST['iplr_temporary_ips_message'])) {
+            update_post_meta($post_id, self::META_TEMPORARY_IPS_MESSAGE, sanitize_text_field($_POST['iplr_temporary_ips_message']));
+        }
+
+        // 臨時IPの保存
+        if (isset($_POST['iplr_temporary_ips'])) {
+            $temporary_ips = sanitize_textarea_field($_POST['iplr_temporary_ips']);
+            update_post_meta($post_id, self::META_TEMPORARY_IPS, $temporary_ips);
+        } else {
+            delete_post_meta($post_id, self::META_TEMPORARY_IPS);
+        }
+    }
+
+    /** 投稿一覧にカスタムカラムを追加 */
+    public function add_temporary_ip_column($columns)
+    {
+        $columns['iplr_temporary_ips'] = __('Temporary IPs', 'ip-login-restrictor');
+        return $columns;
+    }
+
+    /** カスタムカラムの表示 */
+    public function display_temporary_ip_column($column, $post_id)
+    {
+        if ($column === 'iplr_temporary_ips') {
+            $temporary_ips = get_post_meta($post_id, self::META_TEMPORARY_IPS, true);
+            $temporary_ips_enabled = get_post_meta($post_id, self::META_TEMPORARY_IPS . '_enabled', true);
+            
+            if ($temporary_ips) {
+                $ips_array = preg_split("/\r\n|\r|\n/", $temporary_ips);
+                $ips_array = array_filter(array_map('trim', $ips_array));
+                $count = count($ips_array);
+                
+                // スイッチの状態で色を変える
+                if ($temporary_ips_enabled === '1') {
+                    echo '<span style="color:#1f8f3a;font-weight:600;">✓ ' . sprintf(_n('%d IP', '%d IPs', $count, 'ip-login-restrictor'), $count) . '</span>';
+                } else {
+                    echo '<span style="color:#999;font-weight:600;">✗ ' . sprintf(_n('%d IP', '%d IPs', $count, 'ip-login-restrictor'), $count) . '</span>';
+                }
+                
+                echo '<div style="font-size:11px;color:#666;margin-top:2px;">' . esc_html(implode(', ', array_slice($ips_array, 0, 3)));
+                if ($count > 3) {
+                    echo '...';
+                }
+                echo '</div>';
+            } else {
+                echo '<span style="color:#999;">—</span>';
+            }
+        }
     }
 
     /** 管理バー表示（有効/無効。有効時は現在IPも子項目に表示） */

@@ -64,8 +64,11 @@ msgstr "レスキューURL（緊急用）"
 msgid "Set a secret key to create a rescue URL. Accessing this URL will automatically add your current IP to the whitelist."
 msgstr "秘密のキーを設定すると、レスキューURLが生成されます。このURLにアクセスすると、あなたの現在のIPアドレスが自動的に許可リストに追加されます。"
 
-msgid "Rescue Key:"
-msgstr "レスキューキー:"
+msgid "Rescue Parameter Key:"
+msgstr "レスキューURL パラメータ名:"
+
+msgid "Rescue Key Value:"
+msgstr "レスキューキー（値）:"
 
 msgid "Your Rescue URL:"
 msgstr "あなたのレスキューURL:"
@@ -143,3 +146,35 @@ msgstr "(+フロント)"
 msgid "This is your safety net if your IP address changes and you get locked out. Set a secret key below to generate your unique Rescue URL. Accessing that URL will automatically add your new IP to the Admin Whitelist. <b>Please bookmark the generated URL immediately.</b>"
 msgstr "IPアドレスが変わってロックアウトされた場合、このレスキューURLが命綱になります。秘密のキーを設定してURLを生成してください。そのURLにアクセスすると、現在のIPが自動的に管理用ホワイトリストに追加されます。<b>生成されたURLは必ずブックマークしてください。</b>"
 
+msgid "IP Login Restrictor - Temporary IPs"
+msgstr "IP Login Restrictor - 臨時IP設定"
+
+msgid "Add temporary IP addresses for this page only. One IP per line. CIDR notation is supported."
+msgstr "このページ専用の臨時IPアドレスを追加できます。1行に1つのIPアドレスを入力してください。CIDR表記にも対応しています。"
+
+msgid "These IPs will be added to the default allowed IPs when accessing this page."
+msgstr "これらのIPアドレスは、このページにアクセスする際にデフォルトの許可IPに追加されます。"
+
+msgid "Add current IP"
+msgstr "現在のIPを追加"
+
+msgid "Temporary IPs"
+msgstr "臨時IP"
+
+msgid "%d IP"
+msgid_plural "%d IPs"
+msgstr[0] "%d 個のIP"
+
+msgid "Enable"
+msgstr "有効"
+
+msgid "Disable"
+msgstr "無効"
+msgid "Custom Denied Message:"
+msgstr "アクセス拒否時の追加メッセージ:"
+
+msgid "e.g. Please contact the administrator."
+msgstr "例：管理者までご連絡ください。"
+
+msgid "This message will replace the {page_message} token in the access denied body."
+msgstr "このメッセージは、アクセス拒否画面の本文にある {page_message} トークンと置き換わります。"

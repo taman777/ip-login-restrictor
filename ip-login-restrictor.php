@@ -34,6 +34,7 @@ class IP_Login_Restrictor
     const OPTION_PREVIEW_MSG  = 'ip_login_restrictor_preview_notice_msg'; // プレビュー中通知メッセージ
     const META_TEMPORARY_IPS  = '_iplr_temporary_ips'; // ページ固有の臨時IP
     const META_TEMPORARY_IPS_MESSAGE = '_iplr_temporary_ips_message'; // ページ固有の拒否メッセージ
+    const META_TEMPORARY_IPS_EXPIRE  = '_iplr_temporary_ips_expire';  // ページ固有の制限有効期限
 
     /** @var string 管理メニューのフック名（load-フックでPOST処理用） */
     private $menu_hook = '';
@@ -64,6 +65,9 @@ class IP_Login_Restrictor
 
         add_action('admin_menu',      [$this, 'add_admin_menu']);
         add_action('admin_bar_menu',  [$this, 'add_admin_bar_status'], 100);
+
+        // 全体への警告通知
+        add_action('admin_notices',   [$this, 'admin_page_restriction_notice']);
 
         // 管理バー色付け（有効=緑 / 無効=グレー）
         add_action('admin_head',      [$this, 'output_adminbar_css']);
@@ -188,7 +192,19 @@ class IP_Login_Restrictor
             if ($post_id) {
                 $enabled_meta = get_post_meta($post_id, self::META_TEMPORARY_IPS . '_enabled', true);
                 if ($enabled_meta === '1') {
-                    $page_temp_ips_active = true;
+                    // 有効期限のチェック
+                    $expire_meta = get_post_meta($post_id, self::META_TEMPORARY_IPS_EXPIRE, true);
+                    if ($expire_meta) {
+                        $expire_timestamp = strtotime($expire_meta);
+                        if ($expire_timestamp && current_time('timestamp') > $expire_timestamp) {
+                            $page_temp_ips_active = false;
+                        } else {
+                            $page_temp_ips_active = true;
+                        }
+                    } else {
+                        // 期限なし（本来は設定すべきだが、互換性のため許可）
+                        $page_temp_ips_active = true;
+                    }
                 }
             }
         }
@@ -262,7 +278,7 @@ class IP_Login_Restrictor
 
             $replacements = [
                 '{ip}'           => esc_html($remote_ip),
-                '{datetime}'     => esc_html(date_i18n('Y-m-d H:i:s')),
+                '{datetime}'     => esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'))),
                 '{site_name}'    => esc_html(get_bloginfo('name')),
                 '{page_message}' => $page_message_html,
             ];
@@ -390,6 +406,15 @@ class IP_Login_Restrictor
         // ページ個別の臨時IP
         $temp_enabled = get_post_meta($post_id, self::META_TEMPORARY_IPS . '_enabled', true);
         if ($temp_enabled === '1') {
+            // 有効期限のチェック
+            $expire_meta = get_post_meta($post_id, self::META_TEMPORARY_IPS_EXPIRE, true);
+            if ($expire_meta) {
+                $expire_timestamp = strtotime($expire_meta);
+                if ($expire_timestamp && current_time('timestamp') > $expire_timestamp) {
+                    return false;
+                }
+            }
+
             $temporary_ips = get_post_meta($post_id, self::META_TEMPORARY_IPS, true);
             if ($temporary_ips) {
                 $temp_ips_array = preg_split("/\r\n|\r|\n/", $temporary_ips);
@@ -559,6 +584,56 @@ class IP_Login_Restrictor
         $msg_body   = (string) get_option(self::OPTION_MSG_BODY, '');
         $preview_msg = (string) get_option(self::OPTION_PREVIEW_MSG, __('You are viewing this preview because your IP is whitelisted.', 'ip-login-restrictor'));
         $current_ip = esc_html($this->get_client_ip());
+
+        // ページ単位の制限が有効なページを取得
+        $temp_pages_query = new WP_Query([
+            'post_type'      => ['post', 'page'],
+            'posts_per_page' => -1,
+            'meta_query'     => [
+                [
+                    'key'   => self::META_TEMPORARY_IPS . '_enabled',
+                    'value' => '1',
+                ]
+            ],
+        ]);
+        $active_temp_pages = [];
+        if ($temp_pages_query->have_posts()) {
+            while ($temp_pages_query->have_posts()) {
+                $temp_pages_query->the_post();
+                $pid = get_the_ID();
+                $expire_at = get_post_meta($pid, self::META_TEMPORARY_IPS_EXPIRE, true);
+                
+                $is_expired = false;
+                $remaining_text = __('No expiration', 'ip-login-restrictor');
+                
+                if ($expire_at) {
+                    $expire_ts = strtotime($expire_at);
+                    $now = current_time('timestamp');
+                    if ($now > $expire_ts) {
+                        $is_expired = true;
+                        $remaining_text = '<span style="color:#d63638;font-weight:bold;">' . __('Expired', 'ip-login-restrictor') . '</span>';
+                    } else {
+                        $diff = $expire_ts - $now;
+                        $hours = floor($diff / 3600);
+                        $mins  = floor(($diff % 3600) / 60);
+                        $remaining_text = sprintf(__('%d hours %d mins left', 'ip-login-restrictor'), $hours, $mins);
+                    }
+                }
+
+                // 期限切れでも「有効（Enable）」設定になっているものはリストに含める（ただし期限切れ表示付き）
+                $active_temp_pages[] = [
+                    'id'        => $pid,
+                    'title'     => get_the_title(),
+                    'slug'      => get_post_field('post_name', $pid),
+                    'status'    => get_post_status($pid),
+                    'edit_url'  => get_edit_post_link($pid),
+                    'expire_at' => $expire_at,
+                    'remaining' => $remaining_text,
+                    'is_expired'=> $is_expired
+                ];
+            }
+            wp_reset_postdata();
+        }
 ?>
         <div class="wrap">
             <h1><?php _e('IP Login Restrictor Settings', 'ip-login-restrictor'); ?></h1>
@@ -590,6 +665,37 @@ class IP_Login_Restrictor
                 <p class="description">
                     <?php _e('If enabled, normal pages (frontend) will also be restricted by the same IP whitelist. (Main plugin status must be Enabled)', 'ip-login-restrictor'); ?>
                 </p>
+
+                <?php if (!empty($active_temp_pages)): ?>
+                    <div class="iplr-active-temp-pages" style="margin-top:20px; background:#fff; border:1px solid #ccd0d4; padding:15px; border-radius:4px;">
+                        <h3><?php _e('Active Page Specific Restrictions', 'ip-login-restrictor'); ?></h3>
+                        <p class="description"><?php _e('The following pages have page-specific IP restrictions enabled.', 'ip-login-restrictor'); ?></p>
+                        <table class="wp-list-table widefat fixed striped" style="margin-top:10px;">
+                            <thead>
+                                <tr>
+                                    <th style="width:60px;">ID</th>
+                                    <th><?php _e('Title', 'ip-login-restrictor'); ?></th>
+                                    <th style="width:100px;"><?php _e('Post Status', 'ip-login-restrictor'); ?></th>
+                                    <th><?php _e('Slug', 'ip-login-restrictor'); ?></th>
+                                    <th><?php _e('Remaining Time', 'ip-login-restrictor'); ?></th>
+                                    <th style="width:80px;"><?php _e('Edit', 'ip-login-restrictor'); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($active_temp_pages as $p): ?>
+                                    <tr>
+                                        <td><?php echo $p['id']; ?></td>
+                                        <td><strong><a href="<?php echo esc_url($p['edit_url']); ?>"><?php echo esc_html($p['title']); ?></a></strong></td>
+                                        <td><?php echo esc_html(get_post_status_object($p['status'])->label); ?></td>
+                                        <td><code><?php echo esc_html($p['slug']); ?></code></td>
+                                        <td><?php echo $p['remaining']; ?></td>
+                                        <td><a href="<?php echo esc_url($p['edit_url']); ?>" class="button button-small"><?php _e('Edit', 'ip-login-restrictor'); ?></a></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
                 <hr>
 
                 <h2><?php _e('Rescue URL', 'ip-login-restrictor'); ?></h2>
@@ -790,10 +896,23 @@ class IP_Login_Restrictor
         wp_nonce_field('iplr_save_temporary_ips', 'iplr_temporary_ips_nonce');
         $temporary_ips = get_post_meta($post->ID, self::META_TEMPORARY_IPS, true);
         $temporary_ips_enabled = get_post_meta($post->ID, self::META_TEMPORARY_IPS . '_enabled', true);
+        $expire_at = get_post_meta($post->ID, self::META_TEMPORARY_IPS_EXPIRE, true);
+
         // デフォルトは無効
         if ($temporary_ips_enabled === '') {
             $temporary_ips_enabled = '0';
         }
+
+        // デフォルトの期限（新規作成時のみ 24時間後）
+        if ($expire_at === '' && empty($temporary_ips)) {
+            $expire_at = date('Y-m-d\TH:i', current_time('timestamp') + 24 * 3600);
+        }
+
+        $is_expired = false;
+        if ($expire_at) {
+            $is_expired = current_time('timestamp') > strtotime($expire_at);
+        }
+
         $current_ip = esc_html($this->get_client_ip());
         ?>
         <div style="margin-bottom:12px;">
@@ -814,6 +933,15 @@ class IP_Login_Restrictor
         </p>
         <textarea name="iplr_temporary_ips" rows="6" style="width:100%;margin-top:10px;"><?php echo esc_textarea($temporary_ips); ?></textarea>
         
+        <p style="margin-top:12px; font-weight:bold;"><?php _e('Expiration Date/Time:', 'ip-login-restrictor'); ?></p>
+        <input type="datetime-local" name="iplr_temporary_ips_expire" value="<?php echo esc_attr($expire_at); ?>" style="width:100%;">
+        <p class="description">
+            <?php _e('The page IP restriction will be automatically disabled after this time.', 'ip-login-restrictor'); ?>
+            <?php if ($is_expired): ?>
+                <br><span style="color:#d63638;font-weight:bold;"><?php _e('Status: Expired', 'ip-login-restrictor'); ?></span>
+            <?php endif; ?>
+        </p>
+
         <p style="margin-top:12px; font-weight:bold;"><?php _e('Custom Denied Message:', 'ip-login-restrictor'); ?></p>
         <input type="text" name="iplr_temporary_ips_message" value="<?php echo esc_attr(get_post_meta($post->ID, self::META_TEMPORARY_IPS_MESSAGE, true)); ?>" style="width:100%;" placeholder="<?php _e('e.g. Please contact the administrator.', 'ip-login-restrictor'); ?>">
         <p class="description"><?php _e('This message will replace the {page_message} token in the access denied body.', 'ip-login-restrictor'); ?></p>
@@ -879,6 +1007,12 @@ class IP_Login_Restrictor
         } else {
             delete_post_meta($post_id, self::META_TEMPORARY_IPS);
         }
+
+        // 有効期限の保存
+        if (isset($_POST['iplr_temporary_ips_expire'])) {
+            $expire_at = sanitize_text_field($_POST['iplr_temporary_ips_expire']);
+            update_post_meta($post_id, self::META_TEMPORARY_IPS_EXPIRE, $expire_at);
+        }
     }
 
     /** 投稿一覧にカスタムカラムを追加 */
@@ -900,9 +1034,14 @@ class IP_Login_Restrictor
                 $ips_array = array_filter(array_map('trim', $ips_array));
                 $count = count($ips_array);
                 
+                $expire_at = get_post_meta($post_id, self::META_TEMPORARY_IPS_EXPIRE, true);
+                $is_expired = $expire_at && (current_time('timestamp') > strtotime($expire_at));
+
                 // スイッチの状態で色を変える
-                if ($temporary_ips_enabled === '1') {
+                if ($temporary_ips_enabled === '1' && !$is_expired) {
                     echo '<span style="color:#1f8f3a;font-weight:600;">✓ ' . sprintf(_n('%d IP', '%d IPs', $count, 'ip-login-restrictor'), $count) . '</span>';
+                } elseif ($is_expired) {
+                    echo '<span style="color:#d63638;font-weight:600;">! ' . __('Expired', 'ip-login-restrictor') . '</span>';
                 } else {
                     echo '<span style="color:#999;font-weight:600;">✗ ' . sprintf(_n('%d IP', '%d IPs', $count, 'ip-login-restrictor'), $count) . '</span>';
                 }
@@ -910,6 +1049,9 @@ class IP_Login_Restrictor
                 echo '<div style="font-size:11px;color:#666;margin-top:2px;">' . esc_html(implode(', ', array_slice($ips_array, 0, 3)));
                 if ($count > 3) {
                     echo '...';
+                }
+                if ($expire_at) {
+                    echo '<br>' . esc_html($expire_at);
                 }
                 echo '</div>';
             } else {
@@ -1093,6 +1235,49 @@ class IP_Login_Restrictor
             })();
         </script>
         <?php
+    }
+
+    /**
+     * 管理画面にページ単位のIP制御があることを通知
+     */
+    public function admin_page_restriction_notice()
+    {
+        if (!current_user_can('manage_options')) return;
+
+        // ページ単位の制限が有効なページ（期限内）があるかチェック
+        $args = [
+            'post_type'      => ['post', 'page'],
+            'posts_per_page' => 1,
+            'fields'         => 'ids',
+            'meta_query'     => [
+                [
+                    'key'   => self::META_TEMPORARY_IPS . '_enabled',
+                    'value' => '1',
+                ]
+            ],
+        ];
+        
+        $query = new WP_Query($args);
+        $has_active = false;
+
+        if ($query->have_posts()) {
+            foreach ($query->posts as $pid) {
+                $expire_at = get_post_meta($pid, self::META_TEMPORARY_IPS_EXPIRE, true);
+                if (!$expire_at || strtotime($expire_at) > current_time('timestamp')) {
+                    $has_active = true;
+                    break;
+                }
+            }
+        }
+
+        if ($has_active) {
+            echo '<div class="notice notice-error" style="background-color: #d63638; border-left-color: #9b2021; color: #fff; padding: 12px; margin-left: 0; margin-right: 0;">';
+            echo '<p style="margin: 0; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px;">';
+            echo '<span class="dashicons dashicons-shield-alt"></span>';
+            echo esc_html__('Page-specific IP Restriction Active', 'ip-login-restrictor');
+            echo ' <a href="' . admin_url('admin.php?page=ip-login-restrictor') . '" style="color: #fff; text-decoration: underline; margin-left: 15px; font-weight: normal; font-size: 13px;">' . esc_html__('View Details', 'ip-login-restrictor') . '</a>';
+            echo '</p></div>';
+        }
     }
 }
 

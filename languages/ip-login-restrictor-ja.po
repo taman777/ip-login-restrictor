@@ -196,3 +196,48 @@ msgstr "固定IPがあれば、IP制限を最大限に活用してセキュリ�
 
 msgid "View LOLIPOP! Static IP Access Service"
 msgstr "LOLIPOP! 固定IPアクセス サービスを見る"
+
+msgid "Expiration Date/Time:"
+msgstr "有効期限 (自動無効化):"
+
+msgid "The page IP restriction will be automatically disabled after this time."
+msgstr "指定した日時を過ぎると、このページのIP制限は自動的に無効になります。"
+
+msgid "Status: Expired"
+msgstr "ステータス: 期限切れ"
+
+msgid "Expired"
+msgstr "期限切れ"
+
+msgid "No expiration"
+msgstr "無期限"
+
+msgid "%d hours %d mins left"
+msgstr "残り %d 時間 %d 分"
+
+msgid "Active Page Specific Restrictions"
+msgstr "ページ単位のIP制御一覧（現在有効なもの）"
+
+msgid "The following pages have page-specific IP restrictions enabled."
+msgstr "以下のページでページ単位のIP制限が有効になっています。"
+
+msgid "Title"
+msgstr "タイトル"
+
+msgid "Slug"
+msgstr "スラッグ"
+
+msgid "Remaining Time"
+msgstr "IP制御残時間"
+
+msgid "Edit"
+msgstr "編集"
+
+msgid "Post Status"
+msgstr "ステータス"
+
+msgid "Page-specific IP Restriction Active"
+msgstr "ページ単位のIP制御あり"
+
+msgid "View Details"
+msgstr "詳細を確認"

@@ -178,3 +178,21 @@ msgstr "例：管理者までご連絡ください。"
 
 msgid "This message will replace the {page_message} token in the access denied body."
 msgstr "このメッセージは、アクセス拒否画面の本文にある {page_message} トークンと置き換わります。"
+
+msgid "You are viewing this preview because your IP is whitelisted."
+msgstr "IP制限により、現在プレビューモードで表示しています。"
+
+msgid "Move"
+msgstr "移動"
+
+msgid "Preview Notice Message"
+msgstr "プレビュー表示中の通知メッセージ"
+
+msgid "Do you need a static IP address to safely access the admin screen?"
+msgstr "安心して管理画面にアクセスするために固定IPが必要ですか？"
+
+msgid "With a static IP, you can maximize IP restriction to enhance security.<br>Recommended for those who want safe and smooth access to the admin screen even from outside or in dynamic IP environments."
+msgstr "固定IPがあれば、IP制限を最大限に活用してセキュリティを強化できます。<br>外出先や動的IP環境でも、安全かつスムーズに管理画面へアクセスしたい方へおすすめです。"
+
+msgid "View LOLIPOP! Static IP Access Service"
+msgstr "LOLIPOP! 固定IPアクセス サービスを見る"

@@ -31,11 +31,15 @@ class IP_Login_Restrictor
     const OPTION_RESCUE_KEY       = 'ip_login_restrictor_rescue_key';
     const OPTION_RESCUE_PARAM     = 'ip_login_restrictor_rescue_param'; // URLパラメータキー
     const OPTION_MSG_BODY     = 'ip_login_restrictor_message_body_html'; // 本文のみHTML
+    const OPTION_PREVIEW_MSG  = 'ip_login_restrictor_preview_notice_msg'; // プレビュー中通知メッセージ
     const META_TEMPORARY_IPS  = '_iplr_temporary_ips'; // ページ固有の臨時IP
     const META_TEMPORARY_IPS_MESSAGE = '_iplr_temporary_ips_message'; // ページ固有の拒否メッセージ
 
     /** @var string 管理メニューのフック名（load-フックでPOST処理用） */
     private $menu_hook = '';
+
+    /** @var bool IP制限によりログインなしでプレビュー表示中か */
+    private $is_preview_via_ip = false;
 
     public function __construct()
     {
@@ -44,6 +48,9 @@ class IP_Login_Restrictor
         // Rescue URL チェック (template_redirect なら安全)
         add_action('template_redirect', [$this, 'handle_rescue_request'], 1);
 
+        // 下書きプレビューの許可（ログインなし・IP制限時のみ）
+        add_filter('the_posts', [$this, 'allow_draft_preview'], 10, 2);
+
         // アクセス制限チェック
         // フロントエンド
         add_action('template_redirect', [$this, 'check_access']);
@@ -51,6 +58,9 @@ class IP_Login_Restrictor
         add_action('login_init',        [$this, 'check_access']);
         // 管理画面（admin-ajax等も含む）
         add_action('admin_init',        [$this, 'check_access']);
+
+        // プレビュー通知バー（画面下部）
+        add_action('wp_footer',         [$this, 'show_preview_notice']);
 
         add_action('admin_menu',      [$this, 'add_admin_menu']);
         add_action('admin_bar_menu',  [$this, 'add_admin_bar_status'], 100);
@@ -123,9 +133,11 @@ class IP_Login_Restrictor
             add_option(self::OPTION_FRONTEND_IPS, []);
         }
         if (get_option(self::OPTION_MSG_BODY, null) === null) {
-            // インスタンスを作って翻訳済みテンプレをセット
             // 静的メソッドで翻訳済みテンプレをセット
             add_option(self::OPTION_MSG_BODY, self::get_default_body_html_translated());
+        }
+        if (get_option(self::OPTION_PREVIEW_MSG, null) === null) {
+            add_option(self::OPTION_PREVIEW_MSG, __('You are viewing this preview because your IP is whitelisted.', 'ip-login-restrictor'));
         }
         if (get_option(self::OPTION_RESCUE_PARAM, null) === null) {
             add_option(self::OPTION_RESCUE_PARAM, 'iplr_rescue');
@@ -298,6 +310,99 @@ class IP_Login_Restrictor
         return false;
     }
 
+    /**
+     * 下書きプレビューの許可（ログインなし・IP制限時のみ）
+     * 参照: https://developer.wordpress.org/reference/hooks/the_posts/
+     */
+    public function allow_draft_preview($posts, $query)
+    {
+        // 管理画面や、既に記事が見つかっている場合、メインクエリ以外は対象外
+        if (is_admin() || !empty($posts) || !$query->is_main_query()) {
+            return $posts;
+        }
+
+        // プレビューリクエストかチェック
+        $post_id = 0;
+        if (isset($_GET['preview']) && $_GET['preview'] === 'true') {
+            if (isset($_GET['p'])) {
+                $post_id = intval($_GET['p']);
+            } elseif (isset($_GET['page_id'])) {
+                $post_id = intval($_GET['page_id']);
+            }
+        }
+
+        if ($post_id > 0) {
+            if ($this->is_ip_allowed_for_post($post_id)) {
+                $post = get_post($post_id);
+                // 下書き、レビュー待ち、予約済みを許可
+                if ($post && in_array($post->post_status, ['draft', 'pending', 'future'])) {
+                    $this->is_preview_via_ip = true; // フラグを立てる
+                    $posts = [$post];
+                    // 404を回避
+                    $query->is_404 = false;
+                    // クエリフラグを適切に設定
+                    if ($post->post_type === 'page') {
+                        $query->is_page = true;
+                    } else {
+                        $query->is_single = true;
+                    }
+                }
+            }
+        }
+
+        return $posts;
+    }
+
+    /**
+     * 特定の投稿に対してIPが許可されているか判定
+     */
+    private function is_ip_allowed_for_post($post_id)
+    {
+        // プラグイン自体が無効なら、この機能で特別に表示させることはしない（標準のWP動作に任せる）
+        if (!$this->is_enabled()) return false;
+
+        $remote_ip = $this->get_client_ip();
+        
+        // 管理用IPリスト（緊急避難IP含む）
+        $admin_ips = get_option(self::OPTION_IPS, []);
+        if (defined('WP_LOGIN_IP_ADDRESS')) {
+             $emergency_ips = WP_LOGIN_IP_ADDRESS;
+             if (is_string($emergency_ips)) {
+                 $emergency_ips = preg_split('/[\s,]+/', $emergency_ips, -1, PREG_SPLIT_NO_EMPTY);
+             }
+             if (is_array($emergency_ips)) {
+                 $admin_ips = array_merge($admin_ips, $emergency_ips);
+             }
+        }
+
+        if ($this->ip_in_allowed_list($remote_ip, $admin_ips)) {
+            return true;
+        }
+
+        // フロントエンドIPリスト
+        if ($this->is_frontend_enabled()) {
+            $frontend_ips = get_option(self::OPTION_FRONTEND_IPS, []);
+            if ($this->ip_in_allowed_list($remote_ip, $frontend_ips)) {
+                return true;
+            }
+        }
+
+        // ページ個別の臨時IP
+        $temp_enabled = get_post_meta($post_id, self::META_TEMPORARY_IPS . '_enabled', true);
+        if ($temp_enabled === '1') {
+            $temporary_ips = get_post_meta($post_id, self::META_TEMPORARY_IPS, true);
+            if ($temporary_ips) {
+                $temp_ips_array = preg_split("/\r\n|\r|\n/", $temporary_ips);
+                $temp_ips_array = array_filter(array_map('trim', $temp_ips_array));
+                if ($this->ip_in_allowed_list($remote_ip, $temp_ips_array)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private function cidr_match($ip, $cidr)
     {
         list($subnet, $mask) = explode('/', $cidr);
@@ -377,6 +482,11 @@ class IP_Login_Restrictor
             update_option(self::OPTION_MSG_BODY, wp_kses_post($_POST['ip_login_restrictor_message_body_html']));
         }
 
+        // プレビュー通知メッセージ
+        if (isset($_POST['ip_login_restrictor_preview_notice_msg'])) {
+            update_option(self::OPTION_PREVIEW_MSG, sanitize_text_field($_POST['ip_login_restrictor_preview_notice_msg']));
+        }
+
         // 「デフォルトに戻す」ボタン
         if (isset($_POST['iplr_restore_default_body']) && $_POST['iplr_restore_default_body'] === '1') {
             update_option(self::OPTION_MSG_BODY, $this->get_default_body_html_translated());
@@ -447,6 +557,7 @@ class IP_Login_Restrictor
         $admin_ips        = implode("\n", get_option(self::OPTION_IPS, []));
         $frontend_ips     = implode("\n", get_option(self::OPTION_FRONTEND_IPS, []));
         $msg_body   = (string) get_option(self::OPTION_MSG_BODY, '');
+        $preview_msg = (string) get_option(self::OPTION_PREVIEW_MSG, __('You are viewing this preview because your IP is whitelisted.', 'ip-login-restrictor'));
         $current_ip = esc_html($this->get_client_ip());
 ?>
         <div class="wrap">
@@ -535,6 +646,14 @@ class IP_Login_Restrictor
                     </button>
                 </p>
 
+                <hr>
+
+                <h2><?php _e('Preview Notice Message', 'ip-login-restrictor'); ?></h2>
+                <p class="description">
+                    <?php _e('Message shown at the bottom/top of the screen when viewing a draft preview via IP restriction.', 'ip-login-restrictor'); ?>
+                </p>
+                <input type="text" name="ip_login_restrictor_preview_notice_msg" value="<?php echo esc_attr($preview_msg); ?>" class="regular-text" style="width:100%; max-width:600px;">
+
                 <p class="submit" style="margin-top:18px;">
                     <input type="submit" class="button-primary" value="<?php esc_attr_e('Save Changes', 'ip-login-restrictor'); ?>">
                 </p>
@@ -611,13 +730,12 @@ class IP_Login_Restrictor
                     <span class="dashicons dashicons-shield-alt"></span>
                 </div>
                 <div class="iplr-promotion-content">
-                    <h3>安心して管理画面にアクセスするために固定IPが必要ですか？</h3>
+                    <h3><?php _e('Do you need a static IP address to safely access the admin screen?', 'ip-login-restrictor'); ?></h3>
                     <p>
-                        固定IPがあれば、IP制限を最大限に活用してセキュリティを強化できます。<br>
-                        外出先や動的IP環境でも、安全かつスムーズに管理画面へアクセスしたい方へおすすめです。
+                        <?php _e('With a static IP, you can maximize IP restriction to enhance security.<br>Recommended for those who want safe and smooth access to the admin screen even from outside or in dynamic IP environments.', 'ip-login-restrictor'); ?>
                     </p>
                     <a href="https://vpn.lolipop.jp/signup?agency_code=f4702aa6f7ddvp" target="_blank" rel="noopener noreferrer" class="iplr-promotion-btn">
-                        LOLIPOP! 固定IPアクセス サービスを見る <span class="dashicons dashicons-external"></span>
+                        <?php _e('View LOLIPOP! Static IP Access Service', 'ip-login-restrictor'); ?> <span class="dashicons dashicons-external"></span>
                     </a>
                 </div>
             </div>
@@ -862,6 +980,119 @@ class IP_Login_Restrictor
             }
         </style>
 <?php
+    }
+
+    /**
+     * IP制限下でのプレビュー通知を表示
+     */
+    public function show_preview_notice()
+    {
+        if (!$this->is_preview_via_ip) return;
+
+        $msg          = get_option(self::OPTION_PREVIEW_MSG, __('You are viewing this preview because your IP is whitelisted.', 'ip-login-restrictor'));
+        $toggle_label = __('Move', 'ip-login-restrictor');
+        ?>
+        <div id="iplr-preview-notice" onclick="this.classList.toggle('iplr-top')" title="<?php echo esc_attr($toggle_label); ?>">
+            <div class="iplr-notice-content">
+                <span class="dashicons dashicons-shield iplr-icon-shield"></span>
+                <span class="iplr-text-msg"><?php echo esc_html($msg); ?></span>
+                <span class="iplr-toggle-btn">
+                    <span class="dashicons dashicons-sort"></span>
+                    <span class="iplr-btn-text"><?php echo esc_html($toggle_label); ?></span>
+                </span>
+            </div>
+        </div>
+        <style>
+            #iplr-preview-notice {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                background: rgba(30, 30, 30, 0.85);
+                color: #fff;
+                padding: 10px 0;
+                text-align: center;
+                font-size: 14px;
+                z-index: 999999;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border-top: 1px solid rgba(255, 255, 255, 0.15);
+                box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.3);
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                user-select: none;
+            }
+            #iplr-preview-notice:hover {
+                background: rgba(45, 45, 45, 0.95);
+            }
+            #iplr-preview-notice.iplr-top {
+                bottom: auto;
+                top: 0;
+                border-top: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            }
+            .iplr-notice-content {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 0 20px;
+            }
+            .iplr-icon-shield {
+                color: #4caf50;
+                font-size: 20px;
+                width: 20px;
+                height: 20px;
+            }
+            .iplr-toggle-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                background: rgba(255, 255, 255, 0.15);
+                padding: 4px 10px;
+                border-radius: 4px;
+                font-size: 12px;
+                margin-left: 10px;
+                transition: background 0.2s;
+            }
+            #iplr-preview-notice:hover .iplr-toggle-btn {
+                background: rgba(255, 255, 255, 0.25);
+            }
+            .iplr-btn-text {
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            @media (max-width: 600px) {
+                .iplr-btn-text { display: none; }
+                .iplr-text-msg { font-size: 12px; }
+            }
+            /* 管理バーがある場合のボディパディング調整（簡易的） */
+            body.iplr-preview-active { padding-bottom: 50px; }
+            body.iplr-preview-active-top { padding-top: 50px; }
+        </style>
+        <script>
+            (function() {
+                const notice = document.getElementById('iplr-preview-notice');
+                const body = document.body;
+                body.classList.add('iplr-preview-active');
+                
+                notice.addEventListener('click', function() {
+                    if (this.classList.contains('iplr-top')) {
+                        body.classList.remove('iplr-preview-active');
+                        body.classList.add('iplr-preview-active-top');
+                    } else {
+                        body.classList.add('iplr-preview-active');
+                        body.classList.remove('iplr-preview-active-top');
+                    }
+                });
+            })();
+        </script>
+        <?php
     }
 }
 

@@ -1,94 +1,334 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: IP Login Restrictor 1.1.6\n"
-"POT-Creation-Date: 2025-08-07 00:00+0900\n"
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-12-21 00:22+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: ChatGPT POT Generator\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
+#: ip-login-restrictor.php:118
+msgid ""
+"<h1>Access Denied</h1><p class=\"description\">This IP address ({ip}) is not "
+"allowed to access the admin/login of {site_name}.<br><small>As of {datetime}"
+"</small></p>"
+msgstr ""
+
+#: ip-login-restrictor.php:144 ip-login-restrictor.php:585
+#: ip-login-restrictor.php:1134
+msgid "You are viewing this preview because your IP is whitelisted."
+msgstr ""
+
+#: ip-login-restrictor.php:288
 msgid "Access Denied"
 msgstr ""
 
-msgid "Access denied. Your IP address is not allowed."
-msgstr ""
-
-msgid "Settings saved."
-msgstr ""
-
-msgid "IP Login Restrictor Settings"
-msgstr ""
-
-msgid "Allowed IP addresses or CIDR ranges (one per line):"
-msgstr ""
-
-msgid "Add current IP address"
-msgstr ""
-
-msgid "Your IP:"
-msgstr ""
-
-msgid "Access Denied Message"
-msgstr ""
-
-msgid "This message is shown when access is denied due to IP restriction."
-msgstr ""
-
-msgid "Save Changes"
-msgstr ""
-
-msgid "Emergency IP:"
-msgstr ""
-
-msgid "You can add"
-msgstr ""
-
-msgid "to wp-config.php to allow access."
-msgstr ""
-
-msgid "Disable restriction:"
-msgstr ""
-
-msgid "Add"
-msgstr ""
-
-msgid "to disable all IP restrictions."
-msgstr ""
-
-msgid "This IP address is already added."
-msgstr ""
-
+#: ip-login-restrictor.php:446 ip-login-restrictor.php:447
 msgid "IP Login Restrictor"
 msgstr ""
 
-# === 新規追加分 ===
+#: ip-login-restrictor.php:551
+#, php-format
+msgid "Success! IP %s has been added to the whitelist."
+msgstr ""
 
+#: ip-login-restrictor.php:553
+#, php-format
+msgid "IP %s is already in the whitelist."
+msgstr ""
+
+#: ip-login-restrictor.php:561
+msgid "Rescue Mode"
+msgstr ""
+
+#: ip-login-restrictor.php:607
+msgid "No expiration"
+msgstr ""
+
+#: ip-login-restrictor.php:614 ip-login-restrictor.php:1044
+msgid "Expired"
+msgstr ""
+
+#: ip-login-restrictor.php:619
+#, php-format
+msgid "%d hours %d mins left"
+msgstr ""
+
+#: ip-login-restrictor.php:639
+msgid "IP Login Restrictor Settings"
+msgstr ""
+
+#: ip-login-restrictor.php:643
 msgid "Status"
 msgstr ""
 
+#: ip-login-restrictor.php:646 ip-login-restrictor.php:1073
 msgid "Enabled"
 msgstr ""
 
+#: ip-login-restrictor.php:650 ip-login-restrictor.php:1078
 msgid "Disabled"
 msgstr ""
 
+#: ip-login-restrictor.php:653
 msgid "When enabled, admin/login access is restricted by the whitelist below."
 msgstr ""
 
-msgid "IP Restrictor: %s"
+#: ip-login-restrictor.php:656
+msgid "Frontend Restriction"
 msgstr ""
 
-msgid "Your IP: %s"
+#: ip-login-restrictor.php:659
+msgid "Restrict Frontend"
 msgstr ""
 
+#: ip-login-restrictor.php:663
+msgid "Allow All (Default)"
+msgstr ""
+
+#: ip-login-restrictor.php:666
+msgid ""
+"If enabled, normal pages (frontend) will also be restricted by the same IP "
+"whitelist. (Main plugin status must be Enabled)"
+msgstr ""
+
+#: ip-login-restrictor.php:671
+msgid "Active Page Specific Restrictions"
+msgstr ""
+
+#: ip-login-restrictor.php:672
+msgid "The following pages have page-specific IP restrictions enabled."
+msgstr ""
+
+#: ip-login-restrictor.php:677
+msgid "Title"
+msgstr ""
+
+#: ip-login-restrictor.php:678
+msgid "Post Status"
+msgstr ""
+
+#: ip-login-restrictor.php:679
+msgid "Slug"
+msgstr ""
+
+#: ip-login-restrictor.php:680
+msgid "Remaining Time"
+msgstr ""
+
+#: ip-login-restrictor.php:681 ip-login-restrictor.php:692
+msgid "Edit"
+msgstr ""
+
+#: ip-login-restrictor.php:701
+msgid "Rescue URL"
+msgstr ""
+
+#: ip-login-restrictor.php:703
+msgid ""
+"This is your safety net if your IP address changes and you get locked out. "
+"Set a secret key below to generate your unique Rescue URL. Accessing that "
+"URL will automatically add your new IP to the Admin Whitelist. <b>Please "
+"bookmark the generated URL immediately.</b>"
+msgstr ""
+
+#: ip-login-restrictor.php:707
+msgid "Rescue Parameter Key:"
+msgstr ""
+
+#: ip-login-restrictor.php:713
+msgid "Rescue Key Value:"
+msgstr ""
+
+#: ip-login-restrictor.php:719
+msgid "Your Rescue URL:"
+msgstr ""
+
+#: ip-login-restrictor.php:726
+msgid "Admin & Login Allowed IPs"
+msgstr ""
+
+#: ip-login-restrictor.php:727
+msgid "These IPs can access EVERYTHING (Admin, Login, and Frontend)."
+msgstr ""
+
+#: ip-login-restrictor.php:730
+msgid "Add current IP to Admin List"
+msgstr ""
+
+#: ip-login-restrictor.php:731 ip-login-restrictor.php:954
+msgid "Your IP:"
+msgstr ""
+
+#: ip-login-restrictor.php:735
+msgid "Frontend Only Allowed IPs"
+msgstr ""
+
+#: ip-login-restrictor.php:736
+msgid ""
+"These IPs can ONLY access the Frontend (Normal pages). Ignored if Frontend "
+"Restriction is disabled."
+msgstr ""
+
+#: ip-login-restrictor.php:739
+msgid "Add current IP to Frontend List"
+msgstr ""
+
+#: ip-login-restrictor.php:743
 msgid "Access Denied Body (HTML)"
 msgstr ""
 
-msgid "You can use basic HTML. Disallowed tags will be removed for security. Available tokens: {ip}, {datetime}, {site_name}."
+#: ip-login-restrictor.php:745
+msgid ""
+"You can use basic HTML. Disallowed tags will be removed for security. "
+"Available tokens: {ip}, {datetime}, {site_name}."
 msgstr ""
 
+#: ip-login-restrictor.php:751
 msgid "Restore default message"
 msgstr ""
 
-msgid "<h1>Access Denied</h1><p class=\"description\">This IP address ({ip}) is not allowed to access the admin/login of {site_name}.<br><small>As of {datetime}</small></p>"
+#: ip-login-restrictor.php:757
+msgid "Preview Notice Message"
+msgstr ""
+
+#: ip-login-restrictor.php:759
+msgid ""
+"Message shown at the bottom/top of the screen when viewing a draft preview "
+"via IP restriction."
+msgstr ""
+
+#: ip-login-restrictor.php:768
+msgid "Emergency IP:"
+msgstr ""
+
+#: ip-login-restrictor.php:769
+msgid "You can add"
+msgstr ""
+
+#: ip-login-restrictor.php:771
+msgid "to wp-config.php to allow access."
+msgstr ""
+
+#: ip-login-restrictor.php:773
+msgid "Disable restriction:"
+msgstr ""
+
+#: ip-login-restrictor.php:774
+msgid "Add"
+msgstr ""
+
+#: ip-login-restrictor.php:776
+msgid "to disable all IP restrictions."
+msgstr ""
+
+#: ip-login-restrictor.php:839
+msgid "Do you need a static IP address to safely access the admin screen?"
+msgstr ""
+
+#: ip-login-restrictor.php:841
+msgid ""
+"With a static IP, you can maximize IP restriction to enhance security."
+"<br>Recommended for those who want safe and smooth access to the admin "
+"screen even from outside or in dynamic IP environments."
+msgstr ""
+
+#: ip-login-restrictor.php:844
+msgid "View LOLIPOP! Static IP Access Service"
+msgstr ""
+
+#: ip-login-restrictor.php:858 ip-login-restrictor.php:966
+msgid "This IP address is already added."
+msgstr ""
+
+#: ip-login-restrictor.php:884
+msgid "IP Login Restrictor - Temporary IPs"
+msgstr ""
+
+#: ip-login-restrictor.php:921
+msgid "Enable"
+msgstr ""
+
+#: ip-login-restrictor.php:925
+msgid "Disable"
+msgstr ""
+
+#: ip-login-restrictor.php:929
+msgid ""
+"Add temporary IP addresses for this page only. One IP per line. CIDR "
+"notation is supported."
+msgstr ""
+
+#: ip-login-restrictor.php:932
+msgid ""
+"These IPs will be added to the default allowed IPs when accessing this page."
+msgstr ""
+
+#: ip-login-restrictor.php:936
+msgid "Expiration Date/Time:"
+msgstr ""
+
+#: ip-login-restrictor.php:939
+msgid "The page IP restriction will be automatically disabled after this time."
+msgstr ""
+
+#: ip-login-restrictor.php:941
+msgid "Status: Expired"
+msgstr ""
+
+#: ip-login-restrictor.php:945
+msgid "Custom Denied Message:"
+msgstr ""
+
+#: ip-login-restrictor.php:946
+msgid "e.g. Please contact the administrator."
+msgstr ""
+
+#: ip-login-restrictor.php:947
+msgid ""
+"This message will replace the {page_message} token in the access denied body."
+msgstr ""
+
+#: ip-login-restrictor.php:951
+msgid "Add current IP"
+msgstr ""
+
+#: ip-login-restrictor.php:1021
+msgid "Temporary IPs"
+msgstr ""
+
+#: ip-login-restrictor.php:1042 ip-login-restrictor.php:1046
+#, php-format
+msgid "%d IP"
+msgid_plural "%d IPs"
+msgstr[0] ""
+msgstr[1] ""
+
+#: ip-login-restrictor.php:1075
+msgid "(+Frontend)"
+msgstr ""
+
+#: ip-login-restrictor.php:1081
+#, php-format
+msgid "IP Restrictor: %s"
+msgstr ""
+
+#: ip-login-restrictor.php:1094
+#, php-format
+msgid "Your IP: %s"
+msgstr ""
+
+#: ip-login-restrictor.php:1135
+msgid "Move"
 msgstr ""

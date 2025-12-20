@@ -64,8 +64,11 @@ msgstr "レスキューURL（緊急用）"
 msgid "Set a secret key to create a rescue URL. Accessing this URL will automatically add your current IP to the whitelist."
 msgstr "秘密のキーを設定すると、レスキューURLが生成されます。このURLにアクセスすると、あなたの現在のIPアドレスが自動的に許可リストに追加されます。"
 
-msgid "Rescue Key:"
-msgstr "レスキューキー:"
+msgid "Rescue Parameter Key:"
+msgstr "レスキューURL パラメータ名:"
+
+msgid "Rescue Key Value:"
+msgstr "レスキューキー（値）:"
 
 msgid "Your Rescue URL:"
 msgstr "あなたのレスキューURL:"
@@ -143,3 +146,98 @@ msgstr "(+フロント)"
 msgid "This is your safety net if your IP address changes and you get locked out. Set a secret key below to generate your unique Rescue URL. Accessing that URL will automatically add your new IP to the Admin Whitelist. <b>Please bookmark the generated URL immediately.</b>"
 msgstr "IPアドレスが変わってロックアウトされた場合、このレスキューURLが命綱になります。秘密のキーを設定してURLを生成してください。そのURLにアクセスすると、現在のIPが自動的に管理用ホワイトリストに追加されます。<b>生成されたURLは必ずブックマークしてください。</b>"
 
+msgid "IP Login Restrictor - Temporary IPs"
+msgstr "IP Login Restrictor - 臨時IP設定"
+
+msgid "Add temporary IP addresses for this page only. One IP per line. CIDR notation is supported."
+msgstr "このページ専用の臨時IPアドレスを追加できます。1行に1つのIPアドレスを入力してください。CIDR表記にも対応しています。"
+
+msgid "These IPs will be added to the default allowed IPs when accessing this page."
+msgstr "これらのIPアドレスは、このページにアクセスする際にデフォルトの許可IPに追加されます。"
+
+msgid "Add current IP"
+msgstr "現在のIPを追加"
+
+msgid "Temporary IPs"
+msgstr "臨時IP"
+
+msgid "%d IP"
+msgid_plural "%d IPs"
+msgstr[0] "%d 個のIP"
+
+msgid "Enable"
+msgstr "有効"
+
+msgid "Disable"
+msgstr "無効"
+msgid "Custom Denied Message:"
+msgstr "アクセス拒否時の追加メッセージ:"
+
+msgid "e.g. Please contact the administrator."
+msgstr "例：管理者までご連絡ください。"
+
+msgid "This message will replace the {page_message} token in the access denied body."
+msgstr "このメッセージは、アクセス拒否画面の本文にある {page_message} トークンと置き換わります。"
+
+msgid "You are viewing this preview because your IP is whitelisted."
+msgstr "IP制限により、現在プレビューモードで表示しています。"
+
+msgid "Move"
+msgstr "移動"
+
+msgid "Preview Notice Message"
+msgstr "プレビュー表示中の通知メッセージ"
+
+msgid "Do you need a static IP address to safely access the admin screen?"
+msgstr "安心して管理画面にアクセスするために固定IPが必要ですか？"
+
+msgid "With a static IP, you can maximize IP restriction to enhance security.<br>Recommended for those who want safe and smooth access to the admin screen even from outside or in dynamic IP environments."
+msgstr "固定IPがあれば、IP制限を最大限に活用してセキュリティを強化できます。<br>外出先や動的IP環境でも、安全かつスムーズに管理画面へアクセスしたい方へおすすめです。"
+
+msgid "View LOLIPOP! Static IP Access Service"
+msgstr "LOLIPOP! 固定IPアクセス サービスを見る"
+
+msgid "Expiration Date/Time:"
+msgstr "有効期限 (自動無効化):"
+
+msgid "The page IP restriction will be automatically disabled after this time."
+msgstr "指定した日時を過ぎると、このページのIP制限は自動的に無効になります。"
+
+msgid "Status: Expired"
+msgstr "ステータス: 期限切れ"
+
+msgid "Expired"
+msgstr "期限切れ"
+
+msgid "No expiration"
+msgstr "無期限"
+
+msgid "%d hours %d mins left"
+msgstr "残り %d 時間 %d 分"
+
+msgid "Active Page Specific Restrictions"
+msgstr "ページ単位のIP制御一覧（現在有効なもの）"
+
+msgid "The following pages have page-specific IP restrictions enabled."
+msgstr "以下のページでページ単位のIP制限が有効になっています。"
+
+msgid "Title"
+msgstr "タイトル"
+
+msgid "Slug"
+msgstr "スラッグ"
+
+msgid "Remaining Time"
+msgstr "IP制御残時間"
+
+msgid "Edit"
+msgstr "編集"
+
+msgid "Post Status"
+msgstr "ステータス"
+
+msgid "Page-specific IP Restriction Active"
+msgstr "ページ単位のIP制御あり"
+
+msgid "View Details"
+msgstr "詳細を確認"
